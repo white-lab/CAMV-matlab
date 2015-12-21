@@ -1,0 +1,8 @@
+*.tmp
+*.msi
+ProteoWizard*
+*.txt
+*.exe
+*.log
+CAMV/
+CAMV_resources/
