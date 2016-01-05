@@ -84,15 +84,10 @@ handle3 = uicontrol('Style', 'pushbutton', 'String', 'Reject',...
 
 handle_RR = uicontrol('KeyPressFcn', @keyInput, 'Enable', 'off');
 
-handle_print_accept = uicontrol('Style', 'pushbutton', 'String', 'Print Accept List',...
-    'Enable', 'off',...
-    'Position', [980 20 100 20],...
-    'Callback', @print_accepted);
-
-handle_print_maybe = uicontrol('Style', 'pushbutton', 'String', 'Print Maybe List',...
+handle_export = uicontrol('Style', 'pushbutton', 'String', 'Export...',...
     'Enable', 'off',...
     'Position', [1080 20 100 20],...
-    'Callback', @print_maybe);
+    'Callback', @display_export);
 
 handle_reset = uicontrol('Style', 'pushbutton', 'String', 'Reset Session',...
     'Enable', 'off',...
@@ -251,15 +246,10 @@ is_zoomed = 0;
             
             handle_RR = uicontrol('KeyPressFcn', @keyInput, 'Enable', 'off');
             
-            handle_print_accept = uicontrol('Style', 'pushbutton', 'String', 'Print Accept List',...
-                'Enable', 'off',...
-                'Position', [980 20 100 20],...
-                'Callback', @print_accepted);
-            
-            handle_print_maybe = uicontrol('Style', 'pushbutton', 'String', 'Print Maybe List',...
+            handle_export = uicontrol('Style', 'pushbutton', 'String', 'Export...',...
                 'Enable', 'off',...
                 'Position', [1080 20 100 20],...
-                'Callback', @print_maybe);
+                'Callback', @display_export);
             
             handle_reset = uicontrol('Style', 'pushbutton', 'String', 'Reset Session',...
                 'Enable', 'off',...
@@ -671,154 +661,267 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Print plots for scans in "accept" list and write XLS with iTRAQ data
-    function print_accepted(hObject, event)
-        if length(accept_list) > 0
-            if exist([OUT_path, filename,'\accept']) == 0
+    %%% Print plots for scans in a given peptide list.
+    function write_spectra(lst, path)
+        function seq = fix_seq(seq)
+            seq = regexprep(seq, 's', '(s)');
+            seq = regexprep(seq, 't', '(t)');
+            seq = regexprep(seq, 'y', '(y)');
+            seq = regexprep(seq, 'm', '(m)');
+            seq = regexprep(seq, 'k', '(k)');
+        end
+        function fig_name = fix_fig_name(fig_name)
+            fig_name = regexprep(fig_name, '/', '-');
+            fig_name = regexprep(fig_name, ':', '-');
+            fig_name = regexprep(fig_name, '\.', '');
+        end
+        dir_path = [path, '\'];
+        if ~isempty(lst)
+            if exist(dir_path, 'dir') == 0
                 % Make output directory
-                mkdir([OUT_path, filename,'\accept']);
+                mkdir(dir_path);
             else
                 % Remove files that are no longer accepted
-                dir_contents = dir([OUT_path, filename,'\accept']);
+                dir_contents = dir(dir_path);
+                
+                % Precompute the list of figure names
+                fig_names = cell(length(lst));
+                for j = 1:length(lst)
+                    scan = str2num(lst{j}.scan);
+                    id = str2num(lst{j}.choice);
+
+                    seq = fix_seq(data{scan}.fragments{id}.seq);
+                    fig_name = fix_fig_name( ...
+                        [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq] ...
+                    );
+                    fig_names{j} = [fig_name, '.pdf'];
+                end
+                
+                % Skip '.' and '..'
                 for i = 3:length(dir_contents)
-                    found = 0;
-                    for j = 1:length(accept_list)
-                        scan = str2num(accept_list{j}.scan);
-                        id = str2num(accept_list{j}.choice);
-                        
-                        seq = data{scan}.fragments{id}.seq;
-                        seq = regexprep(seq, 's', '(s)');
-                        seq = regexprep(seq, 't', '(t)');
-                        seq = regexprep(seq, 'y', '(y)');
-                        seq = regexprep(seq, 'm', '(m)');
-                        seq = regexprep(seq, 'k', '(k)');
-                        
-                        fig_name = [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq];
-                        
-                        fig_name = regexprep(fig_name, '/', '-');
-                        fig_name = regexprep(fig_name, ':', '-');
-                        fig_name = regexprep(fig_name, '\.', '');
-                        
-                        if strcmp(dir_contents(i).name,[fig_name,'.pdf'])
-                            found = 1;
-                        end
-                    end
-                    if ~found
-                        delete([OUT_path, filename,'\accept\',dir_contents(i).name]);
+                    if any(strcmp(dir_contents(i).name, fig_names))
+                        delete([dir_path, dir_contents(i).name]);
                     end
                 end
             end
             % Print new figures
-            for i = 1:length(accept_list)
-                scan = str2num(accept_list{i}.scan);
-                id = str2num(accept_list{i}.choice);
+            for i = 1:length(lst)
+                scan = str2num(lst{i}.scan);
+                id = str2num(lst{i}.choice);
                 
-                seq = data{scan}.fragments{id}.seq;
-                seq = regexprep(seq, 's', '(s)');
-                seq = regexprep(seq, 't', '(t)');
-                seq = regexprep(seq, 'y', '(y)');
-                seq = regexprep(seq, 'm', '(m)');
-                seq = regexprep(seq, 'k', '(k)');
+                seq = fix_seq(data{scan}.fragments{id}.seq);
+                fig_name = fix_fig_name( ...
+                    [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq] ...
+                );
                 
-                fig_name = [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq];
-                
-                fig_name = regexprep(fig_name, '/', '-');
-                fig_name = regexprep(fig_name, ':', '-');
-                fig_name = regexprep(fig_name, '\.', '');
-                
-                if ~exist([OUT_path,filename,'\accept\',fig_name,'.pdf'],'file')
-                    print_pdf(scan, id, ['accept\',fig_name]);
+                if ~exist([dir_path, fig_name, '.pdf'],'file')
+                    print_pdf(scan, id, [dir_path, fig_name]);
                 end
-                
-            end
-            if ~strcmp(iTRAQType{1},'None')
-                iTRAQ_to_Excel(accept_list);
-            elseif SILAC
-                SILAC_to_Excel(accept_list);
-            else
-                unlabelled_to_Excel(accept_list);
             end
         else
-            warndlg('No peptide identifications have been selected.','Empty List');
-            delete([OUT_path, filename,'\accept\*.pdf']);
-            delete([OUT_path, filename,'\*.xls'])
+            delete([dir_name, '*.pdf']);
+        end
+    end
+    
+    %%% Write a list of peptides and their associated iTRAQ data for a
+    %%% given peptide list.
+    function write_list(lst, path)
+        out_path = [path, '.xls'];
+        if ~isempty(lst)
+            if ~strcmp(iTRAQType{1},'None')
+                iTRAQ_to_Excel(lst, out_path);
+            elseif SILAC
+                SILAC_to_Excel(lst, out_path);
+            else
+                unlabelled_to_Excel(lst, out_path);
+            end
+        else
+            delete(out_path)
         end
     end
 
-% Print plots for scans in "maybe" list
-    function print_maybe(hObject, event)
-        if length(maybe_list) > 0
-            if exist([OUT_path, filename,'\maybe']) == 0
-                % Make output directory
-                mkdir([OUT_path, filename,'\maybe']);
+    %%% This function handles exporting the list of accepted / rejected /
+    %%% maybe'd peptides and their annotated spectra.
+    function display_export(~, ~)
+        figure('pos', [400, 400, 700, 150], 'WindowStyle', 'modal');
+        set(gcf, 'name', 'Export', 'numbertitle', 'off', 'MenuBar', 'none');
+        set(gca, 'Visible', 'off', 'Position', [0 0 1 1]);
+        
+        accept_out = [OUT_path, filename, '\accept'];
+        maybe_out = [OUT_path, filename, '\maybe'];
+        reject_out = [OUT_path, filename, '\reject'];
+        
+        text(80, 125, 'Export?', 'Units', 'pixels');
+        text(140, 125, 'Print Spectra?', 'Units', 'pixels');
+        text(245, 125, ...
+            'Base Path (+ .xls, + \\<Protein> - <Scan ID> - <Sequence>.pdf)', ...
+            'Units', 'pixels');
+        
+        text(10, 100, 'Accept List:', 'Units', 'pixels');
+        handle_enable_accept = uicontrol( ...
+            'Style', 'checkbox', ...
+            'Position', [95, 90, 200, 20], ...
+            'Value', 1, ...
+            'Callback', @enable_accept ...
+        );
+        handle_spectra_accept = uicontrol( ...
+            'Style', 'checkbox', ...
+            'Position', [170, 90, 20, 20] ...
+        );
+        handle_accept = uicontrol( ...
+            'Style', 'edit', ...
+            'Position', [240, 90, 390, 20], ...
+            'Enable', 'on', ...
+            'String', accept_out, ...
+            'HorizontalAlignment', 'left' ...
+        );
+        handle_select_accept = uicontrol( ...
+            'Style', 'pushbutton', ...
+            'Position', [650, 90, 20, 20], ...
+            'String', '...', ...
+            'Callback', @select_accept ...
+        );
+        accept_list_handles = [handle_spectra_accept, handle_accept, handle_select_accept];
+        
+        text(10, 75, 'Maybe List:', 'Units', 'pixels');
+        handle_enable_maybe = uicontrol( ...
+            'Style', 'checkbox', ...
+            'Value', 1, ...
+            'Position', [95, 65, 20, 20], ...
+            'Callback', @enable_maybe ...
+        );
+        handle_spectra_maybe = uicontrol( ...
+            'Style', 'checkbox', ...
+            'Position', [170, 65, 20, 20] ...
+        );
+        handle_maybe = uicontrol( ...
+            'Style', 'edit', ...
+            'Position', [240, 65, 390, 20], ...
+            'Enable', 'on', ...
+            'String', maybe_out, ...
+            'HorizontalAlignment', 'left' ...
+        );
+        handle_select_maybe = uicontrol( ...
+            'Style', 'pushbutton', ...
+            'Position', [650, 65, 20, 20], ...
+            'String', '...', ...
+            'Callback', @select_maybe ...
+        );
+        maybe_list_handles = [handle_spectra_maybe, handle_maybe, handle_select_maybe];
+        
+        text(10, 50, 'Reject List:', 'Units', 'pixels');
+        handle_enable_reject = uicontrol( ...
+            'Style', 'checkbox', ...
+            'Value', 1, ...
+            'Position', [95, 40, 20, 20], ...
+            'Callback', @enable_reject ...
+        );
+        handle_spectra_reject = uicontrol( ...
+            'Style', 'checkbox', ...
+            'Position', [170, 40, 20, 20] ...
+        );
+        handle_reject = uicontrol( ...
+            'Style', 'edit', ...
+            'Position', [240, 40, 390, 20], ...
+            'Enable', 'on', ...
+            'String', reject_out, ...
+            'HorizontalAlignment', 'left' ...
+        );
+        handle_select_reject = uicontrol( ...
+            'Style', 'pushbutton', ...
+            'Position', [650, 40, 20, 20], ...
+            'String', '...', ...
+            'Callback', @select_reject ...
+        );
+        reject_list_handles = [handle_spectra_reject, handle_reject, handle_select_reject];
+        
+        uicontrol(...
+            'Style', 'pushbutton', ...
+            'Position', [575, 15, 100, 20], ...
+            'String', 'Export', ...
+            'Callback', @export ...
+        );
+        
+        function enable_accept(~, ~)
+            if get(handle_enable_accept, 'Value')
+                on_off = 'on';
             else
-                % Remove files that are no longer accepted
-                dir_contents = dir([OUT_path, filename,'\maybe']);
-                for i = 3:length(dir_contents)
-                    found = 0;
-                    for j = 1:length(maybe_list)
-                        scan = str2num(maybe_list{j}.scan);
-                        id = str2num(maybe_list{j}.choice);
-                        
-                        seq = data{scan}.fragments{id}.seq;
-                        seq = regexprep(seq, 's', '(s)');
-                        seq = regexprep(seq, 't', '(t)');
-                        seq = regexprep(seq, 'y', '(y)');
-                        seq = regexprep(seq, 'm', '(m)');
-                        seq = regexprep(seq, 'k', '(k)');
-                        
-                        fig_name = [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq];
-                        
-                        fig_name = regexprep(fig_name, '/', '-');
-                        fig_name = regexprep(fig_name, ':', '-');
-                        fig_name = regexprep(fig_name, '\.', '');
-                        
-                        if strcmp(dir_contents(i).name,[fig_name,'.pdf'])
-                            found = 1;
-                        end
-                    end
-                    if ~found
-                        delete([OUT_path, filename,'\maybe\',dir_contents(i).name]);
-                    end
+                on_off = 'off';
+            end
+            for i=1:numel(accept_list_handles)
+                set(accept_list_handles(i), 'Enable', on_off);
+            end
+        end
+        function enable_maybe(~, ~)
+            if get(handle_enable_maybe, 'Value')
+                on_off = 'on';
+            else
+                on_off = 'off';
+            end
+            for i=1:numel(maybe_list_handles)
+                set(maybe_list_handles(i), 'Enable', on_off);
+            end
+        end
+        function enable_reject(~, ~)
+            if get(handle_enable_reject, 'Value')
+                on_off = 'on';
+            else
+                on_off = 'off';
+            end
+            for i=1:numel(reject_list_handles)
+                set(reject_list_handles(i), 'Enable', on_off);
+            end
+        end
+        function select_accept(~, ~)
+            [out_filename, out_path] = uiputfile('*');
+            set(handle_accept, 'String', [out_path, out_filename]);
+        end
+        function select_maybe(~, ~)
+            [out_filename, out_path] = uiputfile('*');
+            set(handle_maybe, 'String', [out_path, out_filename]);
+        end
+        function select_reject(~, ~)
+            [out_filename, out_path] = uiputfile('*');
+            set(handle_reject, 'String', [out_path, out_filename]);
+        end
+        function export(~, ~)
+            lists = {accept_list, maybe_list, reject_list};
+            handles = [...
+                [handle_enable_accept, handle_spectra_accept, handle_accept]; ...
+                [handle_enable_maybe, handle_spectra_maybe, handle_maybe]; ...
+                [handle_enable_reject, handle_spectra_reject, handle_reject] ...
+            ];
+            labels = {'accept', 'maybe', 'reject'};
+            
+            for i=1:length(lists)
+                lst = lists{i};
+                lst_type = labels{i};
+                enabled = get(handles(i, 1), 'Value');
+                spectra = get(handles(i, 2), 'Value');
+                path = get(handles(i, 3), 'String');
+                
+                if enabled ~= 1
+                    continue
+                end
+                
+                if isempty(lst)
+                    warndlg(...
+                        ['No peptide identifications have been selected in ', lst_type, ' list.'],...
+                        'Empty List'...
+                    );
+                end
+                
+                write_list(lst, path);
+                
+                if spectra
+                    write_spectra(lst, path);
                 end
             end
-            for i = 1:length(maybe_list)
-                scan = str2num(maybe_list{i}.scan);
-                id = str2num(maybe_list{i}.choice);
-                
-                seq = data{scan}.fragments{id}.seq;
-                seq = regexprep(seq, 's', '(s)');
-                seq = regexprep(seq, 't', '(t)');
-                seq = regexprep(seq, 'y', '(y)');
-                seq = regexprep(seq, 'm', '(m)');
-                seq = regexprep(seq, 'k', '(k)');
-                
-                fig_name = [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq];
-                
-                fig_name = regexprep(fig_name, '/', '-');
-                fig_name = regexprep(fig_name, ':', '-');
-                fig_name = regexprep(fig_name, '\.', '');
-                
-                if ~exist([OUT_path,filename,'\maybe\',fig_name,'.pdf'],'file')
-                    print_pdf(scan, id, ['maybe\',fig_name]);
-                end
-            end
-            % Now prints Maybe list to
-            if ~strcmp(iTRAQType{1},'None')
-                iTRAQ_to_Excel(maybe_list);
-            elseif SILAC
-                SILAC_to_Excel(maybe_list);
-            else
-                unlabelled_to_Excel(accept_list);
-            end
-        else
-            warndlg('No peptide identifications have been selected.','Empty List');
-            delete([OUT_path, filename,'\maybe\*.pdf']);
         end
     end
 
 % Used to make publication quality tiff's of single MS2 scans
-    function print_ms2(hObject, event)
+    function print_ms2(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
         
@@ -1158,12 +1261,11 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     set(handle1,'Enable', 'off');
                     set(handle2,'Enable', 'off');
                     set(handle3,'Enable', 'off');
-                    set(handle_print_accept,'Enable', 'on');
-                    set(handle_print_maybe,'Enable', 'on');
+                    set(handle_export, 'Enable', 'on');
                     set(handle_file_save,'Enable', 'on');
                     set(handle_reset,'Enable','on');
                     set(handle_search, 'Visible', 'on', 'Enable', 'on');
-                    %                 set(handle_transfer, 'Visible', 'on', 'Enable', 'on');
+                    % set(handle_transfer, 'Visible', 'on', 'Enable', 'on');
                     delete(handle_prec_cont);
                     delete(handle_threshold);
                     delete(handle_batch_process);
@@ -1247,12 +1349,11 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             set(handle1,'Enable', 'off');
             set(handle2,'Enable', 'off');
             set(handle3,'Enable', 'off');
-            set(handle_print_accept,'Enable', 'on');
-            set(handle_print_maybe,'Enable', 'on');
+            set(handle_export, 'Enable', 'on');
             set(handle_file_save,'Enable', 'on');
             set(handle_reset,'Enable','on');
             set(handle_search, 'Visible', 'on', 'Enable', 'on');
-            %             set(handle_transfer, 'Visible', 'on', 'Enable', 'on');
+            % set(handle_transfer, 'Visible', 'on', 'Enable', 'on');
             print_now('');
             delete(handle_prec_cont);
             delete(handle_threshold);
@@ -3219,7 +3320,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 
 % Print PDF containing MS2 with assignment, peptide ladder, iTRAQ,
 % precursor, and run information
-    function print_pdf(scan,id,fig_name)
+    function print_pdf(scan, id, fig_path)
         seq = data{scan}.fragments{id}.seq;
         protein = data{scan}.protein;
         charge_state = data{scan}.pep_exp_z;
@@ -3244,7 +3345,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             end
         end
         
-        fig = figure('pos',[150,100,1200,600]);
+        fig = figure('pos', [150, 100, 1200, 600]);
         set(gca,'Visible','off');
         % Print PDF friendly scan information and ladder
         
@@ -3353,27 +3454,25 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         set(fig, 'PaperPosition', paperPosition);
         set(fig, 'PaperUnits',paperUnits);
         
-        filename_temp = fig_name;
+        [dir_temp, filename_temp, ext_temp] = fileparts(fig_path);
         filename_temp = regexprep(filename_temp,'<','');
         filename_temp = regexprep(filename_temp,'>','');
         filename_temp = regexprep(filename_temp,':','');
         filename_temp = regexprep(filename_temp,'"','');
         filename_temp = regexprep(filename_temp,'/','');
-        %         filename_temp = regexprep(filename_temp,'\','');
+        % filename_temp = regexprep(filename_temp,'\','');
         filename_temp = regexprep(filename_temp,'\|','');
         filename_temp = regexprep(filename_temp,'?','');
         filename_temp = regexprep(filename_temp,'*','');
         
-        print(fig,'-dpdf', '-r900', [OUT_path, filename, '\', filename_temp]);
+        print(fig, '-dpdf', '-r900', [dir_temp, '\', filename_temp, ext_temp]);
         
         close(fig);
     end
-
-% Write XLS file with iTRAQ data for scans in list
-    function iTRAQ_to_Excel(excel_list)
-        %         XLS_out = fopen([OUT_path, filename, '\', filename, '.xls'],'w');
-        [iTRAQ_filename, iTRAQ_path] = uiputfile({'*.xls','XLS Files'},'Save iTRAQ Summary',[OUT_path, filename, '\', filename, '.xls']);
-        XLS_out = fopen([iTRAQ_path, iTRAQ_filename],'w');
+    
+    %%% Write XLS file with iTRAQ data for scans in list
+    function iTRAQ_to_Excel(excel_list, out_path)
+        XLS_out = fopen(out_path, 'w');
         
         title_line = ['Scan\t', 'Protein\t', 'Accession\t', 'Sequence\t', 'Score\t' 'iTRAQ Centroided\n'];
         fprintf(XLS_out, title_line);
@@ -3412,9 +3511,8 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Write XLS file with just the peptides and modifications in list
-    function unlabelled_to_Excel(excel_list)
-        [ul_filename, ul_path] = uiputfile({'*.xls','XLS Files'},'Save iTRAQ Summary',[OUT_path, filename, '\', filename, '.xls']);
-        XLS_out = fopen([ul_path, ul_filename],'w');
+    function unlabelled_to_Excel(excel_list, out_path)
+        XLS_out = fopen(out_path, 'w');
         title_line = ['Scan\t', 'Protein\t', 'Accession\t', 'Sequence\n'];
         fprintf(XLS_out, title_line);
         
@@ -3429,11 +3527,8 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Write XLS file with SILAC data for scans in list
-    function SILAC_to_Excel(excel_list)
-        %         XLS_out = fopen([OUT_path, filename, '\', filename, '.xls'],'w');
-        
-        [SILAC_filename, SILAC_path] = uiputfile({'*.xls','XLS Files'},'Save SILAC Summary',[OUT_path, filename, '\', filename,' .xls']);
-        XLS_out = fopen([SILAC_path, SILAC_filename],'w');
+    function SILAC_to_Excel(excel_list, out_path)
+        XLS_out = fopen(out_path, 'w');
         
         title_line = ['Scan\t', 'Protein\t', 'Accession\t', 'Sequence\t', 'SILAC Centroided\n'];
         fprintf(XLS_out, title_line);
@@ -3535,6 +3630,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 
 end
 
+%%% Safe version of MATLAB's system() that allows for spaces in file names.
 function [a,b] = systemsafe(varargin)
 cmd = '';
 for i=1:nargin
