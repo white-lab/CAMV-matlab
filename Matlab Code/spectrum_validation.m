@@ -743,8 +743,8 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     %%% This function handles exporting the list of accepted / rejected /
     %%% maybe'd peptides and their annotated spectra.
     function display_export(~, ~)
-        figure('pos', [400, 400, 700, 150], 'WindowStyle', 'modal');
-        set(gcf, 'name', 'Export', 'numbertitle', 'off', 'MenuBar', 'none');
+        fig = figure('pos', [400, 400, 700, 150], 'WindowStyle', 'modal');
+        set(fig, 'name', 'Export', 'numbertitle', 'off', 'MenuBar', 'none');
         set(gca, 'Visible', 'off', 'Position', [0 0 1 1]);
         
         accept_out = [OUT_path, filename, '\accept'];
@@ -917,6 +917,8 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     write_spectra(lst, path);
                 end
             end
+            
+            close(fig);
         end
     end
 
