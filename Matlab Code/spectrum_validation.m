@@ -145,8 +145,8 @@ TMT_10_plex_labels = { ...
 };
 
 % Tree
-h = figure('pos',[150,100,1200,600],'KeyPressFcn',@keyInput);
-set(gcf,'name','Spectrum Validation','numbertitle','off', 'MenuBar', 'none');
+h = figure('pos', [150, 100, 1200, 600], 'KeyPressFcn', @keyInput);
+set(gcf, 'name', 'Spectrum Validation', 'numbertitle', 'off', 'MenuBar', 'none');
 
 
 % Buttons
@@ -242,7 +242,7 @@ hold_zoom_end = 0;
 is_zoomed = 0;
 
 
-    function resetGUI(hObject,event)
+    function resetGUI(~, ~)
         
         resetflag = 0;
         
@@ -307,7 +307,7 @@ is_zoomed = 0;
             load_settings;
             
             % Tree
-            h = figure('pos',[150,100,1200,600],'KeyPressFcn',@keyInput);
+            h = figure('pos', [150, 100, 1200, 600], 'KeyPressFcn', @keyInput);
             set(gcf,'name','Spectrum Validation','numbertitle','off', 'MenuBar', 'none');
             
             
@@ -582,7 +582,7 @@ handle_window = uicontrol('Style','edit',...
     'Enable','off',...
     'string', num2str(cont_window));
 
-    function prec_cont_checked(hObject,event)
+    function prec_cont_checked(~, ~)
         if get(handle_prec_cont,'Value')
             set(handle_threshold,'Enable','on');
             set(handle_window,'Enable','on');
@@ -614,19 +614,27 @@ handle_HCD_tol = uicontrol('Style','edit',...
 text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 
 
-% Handle buttonclick events on tree
-    function keyInput(hObject,event)
-        if event.Character == 'a'
-            accept(hObject,event)
-        elseif event.Character == 's'
-            maybe(hObject,event)
-        elseif event.Character == 'd'
-            reject(hObject,event)
+    %%% Handle key press events in spectra
+    function keyInput(hObject, event)
+        switch event.Character
+            case 'a'
+                accept(hObject, event);
+            case 's'
+                maybe(hObject, event);
+            case 'd'
+                reject(hObject, event);
+        end
+        
+        switch event.Key
+            case 'uparrow'
+                disp('Up!');
+            case 'downarrow'
+                disp('Down!');
         end
     end
 
 
-    function accept(hObject, event)
+    function accept(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
         node.setIcon(im2java(imread([images_dir, 'green.jpg'])));
@@ -653,6 +661,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 if strcmp(reject_list{i}.scan,scan) && strcmp(reject_list{i}.choice,choice)
                     found = 1;
                     reject_list(i) = '';
+                    break;
                 end
             end
             
@@ -661,13 +670,14 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     if strcmp(maybe_list{i}.scan,scan) && strcmp(maybe_list{i}.choice,choice)
                         found = 1;
                         maybe_list(i) = '';
+                        break;
                     end
                 end
             end
         end
     end
 
-    function reject(hObject, event)
+    function reject(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
         node.setIcon(im2java(imread([images_dir, 'red.jpg'])));
@@ -693,6 +703,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 if strcmp(accept_list{i}.scan,scan) && strcmp(accept_list{i}.choice,choice)
                     found = 1;
                     accept_list(i) = '';
+                    break;
                 end
             end
             
@@ -701,13 +712,14 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     if strcmp(maybe_list{i}.scan,scan) && strcmp(maybe_list{i}.choice,choice)
                         found = 1;
                         maybe_list(i) = '';
+                        break;
                     end
                 end
             end
         end
     end
 
-    function maybe(hObject, event)
+    function maybe(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
         node.setIcon(im2java(imread([images_dir, 'orange.jpg'])));
@@ -734,6 +746,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 if strcmp(reject_list{i}.scan,scan) && strcmp(reject_list{i}.choice,choice)
                     found = 1;
                     reject_list(i) = '';
+                    break;
                 end
             end
             
@@ -742,6 +755,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     if strcmp(accept_list{i}.scan,scan) && strcmp(accept_list{i}.choice,choice)
                         found = 1;
                         accept_list(i) = '';
+                        break;
                     end
                 end
             end
@@ -793,7 +807,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             end
             % Print new figures
             for i = 1:length(lst)
-                scan = str2num(lst{i}.scan);
+                scan = str2num(lst{i}.scan); %#ok<*ST2NM>
                 id = str2num(lst{i}.choice);
                 
                 seq = fix_seq(data{scan}.fragments{id}.seq);
@@ -1036,7 +1050,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     [~,~,~,d] = regexp(data{scan}.fragments{id}.validated{r,2},'[0-9]*');
                     b_used(str2num(d{1})) = 1;
                 elseif strcmp(data{scan}.fragments{id}.validated{r,2}(1),'y')
-                    [~,~,~,d] = regexp(data{scan}.fragments{id}.validated{r,2},'[0-9]*');
+                    [~, ~,~,d] = regexp(data{scan}.fragments{id}.validated{r,2},'[0-9]*');
                     y_used(str2num(d{1})) = 1;
                 end
             end
@@ -1112,7 +1126,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         
     end
 
-    function change_settings(~,~)
+    function change_settings(~, ~)
         h2 = figure('pos',[400,400,500,200], 'WindowStyle', 'modal');
         set(gcf,'name','Settings','numbertitle','off', 'MenuBar', 'none');
         set(gca,'Visible', 'off', 'Position', [0 0 1 1]);
@@ -1121,7 +1135,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         handle_msconvert = uicontrol('Style','edit','Position',[110 138 300 20],'Enable','on', 'HorizontalAlignment', 'left');
         uicontrol('Style', 'pushbutton', 'Position', [420 138, 20, 20], 'String', '...', 'Callback', @select_msconvert);
         
-        function select_msconvert(~,~)
+        function select_msconvert(~, ~)
             [msconvert_filename, msconvert_path] = uigetfile({'*.exe','EXE Files'}, 'msconvert Location', [msconvert_path, msconvert_filename]);
             set(handle_RAW, 'String', [msconvert_path, msconvert_filename]);
         end
@@ -1131,14 +1145,14 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 % Process multiple files from the same folder. Ensure that RAW and XML are
 % in the same folder with the same name. If scan lists are to be used, they
 % must also be in the same folder with the same names.
-    function batch_process(~,~)
+    function batch_process(~, ~)
         
         [names, path] = uigetfile({'*.raw','RAW Files'}, 'MultiSelect', 'on');
         
         %       if ~isempty(regexp(path, ' '))
         %           msgbox('Please choose a RAW file path without spaces.','Warning');
         %       else
-        if strcmp(class(names),'char')
+        if ischar(names)
             % Only one file selected
             filename = names;
             filename = regexprep(filename,'.RAW','');
@@ -1262,7 +1276,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Upload file
-    function upload(~,~)
+    function upload(~, ~)
         
         global thepath;
         
@@ -1288,35 +1302,35 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         
         uicontrol('Style', 'pushbutton', 'Position', [300 33, 100, 20], 'String', 'Process', 'Callback', @process);
         
-        function select_RAW(~,~)
+        function select_RAW(~, ~)
             [RAW_filename, RAW_path] = uigetfile(['*.raw;*.baf'],'RAW Files');
             %RAW_filename = strrep(RAW_filename, ' ', '\\ ');
             %RAW_path = strrep(RAW_path, ' ', '\\ ');
             set(handle_RAW, 'String', [RAW_path, RAW_filename]);
         end
         
-        function select_XML(~,~)
+        function select_XML(~, ~)
             [XML_filename, XML_path] = uigetfile([RAW_path '\*.xml'],'XML Files');
             %XML_filename = strrep(XML_filename, ' ', '\\ ');
             %XML_path = strrep(XML_path, ' ', '\\ ');
             set(handle_XML, 'String', [XML_path, XML_filename]);
         end
         
-        function select_OUT(~,~)
+        function select_OUT(~, ~)
             OUT_path = uigetdir(RAW_path);
             OUT_path = [OUT_path,'\'];
             %OUT_path = strrep(OUT_path, ' ', '\\ ');
             set(handle_OUT, 'String', OUT_path);
         end
         
-        function select_SL(~,~)
+        function select_SL(~, ~)
             [SL_filename, SL_path] = uigetfile([RAW_path '\*.xls;*.xlsx'],'Excel Files (.xls, .xlsx)');
             SL_filename = strrep(SL_filename, ' ', '\\ ');
             SL_path = strrep(SL_path, ' ', '\\ ');
             set(handle_SL, 'String', [SL_path, SL_filename]);
         end
         
-        function process(~,~)
+        function process(~, ~)
             
             if isempty(RAW_filename)
                 msgbox('No RAW file selected','Warning');
@@ -1410,8 +1424,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
     %%% Load Session
-    function load_session(~,~)
-        
+    function load_session(~, ~)
         [LOAD_filename, LOAD_path] = uigetfile({'*.mat','MAT Files'});
         
         if exist([LOAD_path,'\',LOAD_filename])
@@ -1488,7 +1501,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             end
         end
         
-        function select_OUT(~,~)
+        function select_OUT(~, ~)
             OUT_path = uigetdir('C:\CAMV_io\output');
             OUT_path = [OUT_path,'\'];
             if ~isempty(regexp(OUT_path, ' '))
@@ -1497,7 +1510,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 set(handle_OUT, 'String', OUT_path);
             end
         end
-        function proceed(~,~)
+        function proceed(~, ~)
             if isempty(OUT_path)
                 msgbox('No output directory selected','Warning');
             else
@@ -1507,7 +1520,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Save Session
-    function save_session(~,~)
+    function save_session(~, ~)
         [SAVE_filename, SAVE_path] = uiputfile({'*.mat','MAT Files'},'Save Session As',[filename,'.mat']);
         print_now('Saving...');
         save([SAVE_path, SAVE_filename],'data', 'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window','HCD_tol', 'CID_tol', 'OUT_path','-v7');
@@ -1515,7 +1528,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Search by scan number or protein name
-    function search(~,~)
+    function search(~, ~)
         h2 = figure('pos',[400,400,500,200], 'WindowStyle', 'modal');
         set(gcf,'name','Search','numbertitle','off', 'MenuBar', 'none');
         set(gca,'Position', [0,0,1,1], 'Visible', 'off');
@@ -1528,7 +1541,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         
         uicontrol('Style', 'pushbutton', 'String', 'Search','Position', [25 10 50 20],'Callback', @SearchCallback);
         
-        function SearchCallback(~,~)
+        function SearchCallback(~, ~)
             prot_name = get(handle_search_protein,'String');
             scan_num = str2num(get(handle_search_scan_number,'String'));
             if ~isempty(prot_name)
@@ -1585,7 +1598,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 
             end
             
-            function SelectNameCallback(~,~)
+            function SelectNameCallback(~, ~)
                 all_names = get(handle_select_protein,'String');
                 curr_name = all_names{get(handle_select_protein,'Value')};
                 choose_protein(curr_name)
@@ -1633,7 +1646,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Transfer choices from another .mat file for same run
-    function transfer(~,~)
+    function transfer(~, ~)
         global R K k;
         cd('input');
         [trans_filename, path] = uigetfile({'*.mat','MAT Files'});
@@ -1743,7 +1756,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         print_now('');
     end
 
-% Display Message Below Plot
+    %%% Display Message Below Plot
     function print_now(string)
         axes(ax0);
         delete(h1);
@@ -1751,16 +1764,32 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         drawnow;
     end
 
-% Display Code Text Above Plot
+    %%% Display Code Text Above Plot
     function print_code_now(string)
         axes(ax0);
         delete(h_code);
         h_code = text(250,575, string, 'Units', 'pixels', 'Interpreter', 'none','FontWeight','bold','Color','r');
         drawnow;
     end
-
-% Handle mouse click events in uitree
-    function mousePressedCallback(~,~)
+    
+    %%% Handle key press events in uitree
+    function keyPressedCallback(hObject, event)
+        import java.awt.event.KeyEvent;
+        
+        switch event.getKeyCode()
+            case KeyEvent.VK_A
+                accept(hObject, event);
+            case KeyEvent.VK_S
+                maybe(hObject, event);
+            case KeyEvent.VK_D
+                reject(hObject, event);
+        end
+        
+        mousePressedCallback(hObject, event);
+    end
+    
+    %%% Handle mouse click events in uitree
+    function mousePressedCallback(~, ~)
         
         zoom_is_clicked = 0;
         
@@ -1990,7 +2019,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             end
         end
         
-        function OKCallback(~,~)
+        function OKCallback(~, ~)
             if strcmp(get(get(rbh,'SelectedObject'),'String'),'Other:')
                 if ~isempty(get(handle_other,'String'))
                     data{scan}.fragments{id}.validated{curr_ion,2} = get(handle_other,'String');
@@ -2027,7 +2056,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             plot_assignment(scan,id);
             close(h2);
         end
-        function CancelCallback(~,~)
+        function CancelCallback(~, ~)
             close(h2);
         end
     end
@@ -2780,7 +2809,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Retrieve Sequences and Assignments for previously excluded ID
-    function process_anyway(~,~)
+    function process_anyway(~, ~)
         print_code_now('Processing...');
         
         nodes = mtree.getSelectedNodes;
@@ -2937,10 +2966,10 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         mtree.position = [0 25 200 575];
         
         % Use JTree properties from Java
-        jtree = handle(mtree.getTree,'CallbackProperties');
+        jtree = handle(mtree.getTree, 'CallbackProperties');
         % MousePressedCallback is not supported by the uitree, but by jtree
         set(jtree, 'MousePressedCallback', @mousePressedCallback);
-        set(jtree, 'KeyPressedCallback', @mousePressedCallback);
+        set(jtree, 'KeyPressedCallback', @keyPressedCallback);
         
         % Automatically opens javatree to see total progress
         %         node = get(mtree.root,'FirstChild');
@@ -2980,7 +3009,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             if ~isempty(data{scan}.fragments{id}.validated{r,2})
                 if ~isempty(regexp(data{scan}.fragments{id}.validated{r,2},'a_{')) || ~isempty(regexp(data{scan}.fragments{id}.validated{r,2},'b_{'))
                     %                 if strcmp(data{scan}.fragments{id}.validated{r,2}(1),'a') || strcmp(data{scan}.fragments{id}.validated{r,2}(1),'b')
-                    [~,~,~,d] = regexp(data{scan}.fragments{id}.validated{r,2},'[0-9]*');
+                    [~, ~,~,d] = regexp(data{scan}.fragments{id}.validated{r,2},'[0-9]*');
                     b_used(str2num(d{1})) = 1;
                     b_names_keep{str2num(d{1})}{end+1} = data{scan}.fragments{id}.validated{r,2};
                 elseif ~isempty(regexp(data{scan}.fragments{id}.validated{r,2},'y_{'))
@@ -3043,7 +3072,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
 
 % Plot table of fragments used to confirm sequence positions
-    function show_used_ions(~,~,b_pos, y_pos)
+    function show_used_ions(~, ~,b_pos, y_pos)
         h2 = figure('pos',[300,300,500,250], 'WindowStyle', 'modal');
         set(gcf,'name','Show Used Fragments','numbertitle','off', 'MenuBar', 'none');
         set(gca,'Position', [0,0,1,1], 'Visible', 'off');
@@ -3231,7 +3260,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             end
         end
         
-        function OKRenameCallback(~,~)
+        function OKRenameCallback(~, ~)
             if strcmp(get(get(rbh,'SelectedObject'),'String'),'Other:')
                 if ~isempty(get(handle_other,'String'))
                     data{scan}.fragments{id}.validated{curr_ion,2} = get(handle_other,'String');
@@ -3265,7 +3294,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             close(h2);
         end
         
-        function CancelRenameCallback(~,~)
+        function CancelRenameCallback(~, ~)
             close(h2);
         end
     end
