@@ -6,3 +6,4 @@ ProteoWizard*
 *.log
 CAMV/
 CAMV_resources/
+*.asv
