@@ -1879,19 +1879,19 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
     
     %%% Handle key press events in uitree
-    function keyPressedCallback(hObject, event)
+    function keyPressedCallback(~, event)
         import java.awt.event.KeyEvent;
         
         switch event.getKeyCode()
             case KeyEvent.VK_A
-                accept(hObject, event);
+                accept();
             case KeyEvent.VK_S
-                maybe(hObject, event);
+                maybe();
             case KeyEvent.VK_D
-                reject(hObject, event);
+                reject();
         end
         
-        mousePressedCallback(hObject, event);
+        mousePressedCallback();
     end
     
     %%% Handle mouse click events in uitree
