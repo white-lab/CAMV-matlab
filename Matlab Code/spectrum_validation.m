@@ -613,23 +613,129 @@ handle_HCD_tol = uicontrol('Style','edit',...
     'string', '10');
 text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 
+    %%% Handle selecting elements of the tree from the spectra view
+    function update_tree()
+        % Move focus in tree to newly selected scan number
+        tree_row = mtree.Tree.getSelectionRows();
+        mtree.Tree.scrollRowToVisible(tree_row);
+        mtree.FigureComponent.getHorizontalScrollBar.setValue(0);
+        
+        mousePressedCallback();
+    end
+   
+    function select_next()
+        nodes = mtree.getSelectedNodes;
+        node = nodes(1);
+        next_node = [];
+        
+        import javax.swing.tree.TreePath;
+        node_path = TreePath(node.getPath);
+        if get(node, 'ChildCount') > 0 && jtree.isExpanded(node_path)
+            next_node = get(node, 'FirstChild');
+        end
+        
+        if isempty(next_node)
+            next_node = get(node, 'NextSibling');
+        end
+        
+        if isempty(next_node)
+            next_node = get(node, 'NextNode');
+        end
+        
+        if ~isempty(next_node)
+            mtree.setSelectedNode(next_node);
+            update_tree();
+        end
+    end
 
+    function select_previous()
+        nodes = mtree.getSelectedNodes;
+        node = nodes(1);
+        
+        previous_node = get(node, 'PreviousSibling');
+        
+        if ~isempty(previous_node)
+            import javax.swing.tree.TreePath;
+            node_path = TreePath(previous_node.getPath);
+            if get(previous_node, 'ChildCount') > 0 && jtree.isExpanded(node_path)
+                previous_node = get(previous_node, 'LastChild');
+            end
+        end
+        
+        if isempty(previous_node)
+            previous_node = get(node, 'PreviousNode');
+        end
+        
+        if ~isempty(previous_node)
+            mtree.setSelectedNode(previous_node);
+            update_tree();
+        end
+    end
+    
+    function select_parent()
+        nodes = mtree.getSelectedNodes;
+        node = nodes(1);
+        
+        if get(node, 'Root')
+            return
+        end
+        
+        import javax.swing.tree.TreePath;
+        node_path = TreePath(node.getPath);
+        if get(node, 'ChildCount') > 0 && jtree.isExpanded(node_path)
+            jtree.collapsePath(node_path);
+            return;
+        end
+        
+        node = get(node, 'Parent');
+        
+        mtree.setSelectedNode(node);
+        update_tree();
+    end
+    
+    function select_child()
+        nodes = mtree.getSelectedNodes;
+        node = nodes(1);
+        
+        if get(node, 'Leaf')
+            return
+        end
+        
+        import javax.swing.tree.TreePath;
+        node_path = TreePath(node.getPath);
+        if ~jtree.isExpanded(node_path)
+            if ~get(node, 'Root')
+                jtree.expandPath(node_path);
+                return
+            end
+        end
+            
+        node = get(node, 'FirstChild');
+        
+        mtree.setSelectedNode(node);
+        update_tree();
+    end
+    
     %%% Handle key press events in spectra
-    function keyInput(hObject, event)
+    function keyInput(~, event)
         switch event.Character
             case 'a'
-                accept(hObject, event);
+                accept();
             case 's'
-                maybe(hObject, event);
+                maybe();
             case 'd'
-                reject(hObject, event);
+                reject();
         end
         
         switch event.Key
             case 'uparrow'
-                disp('Up!');
+                select_previous();
             case 'downarrow'
-                disp('Down!');
+                select_next();
+            case 'leftarrow'
+                select_parent();
+            case 'rightarrow'
+                select_child();
         end
     end
 
