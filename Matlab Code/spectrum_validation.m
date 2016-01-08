@@ -51,6 +51,46 @@ global iTRAQ_8_plex_labels;
 global TMT_10_plex_masses;
 global TMT_10_plex_labels;
 
+global max_num_peaks;
+
+global h;
+global handle1;
+global handle2;
+global handle3;
+global handle_RR;
+global handle_export;
+global handle_reset;
+global handle_process_anyway;
+global handle_search;
+global handle_transfer;
+global handle_file;
+global handle_file_continue;
+global handle_file_save;
+global handle_batch_process;
+global ax0;
+global h1;
+global h_code;
+global ax1;
+global ax1_assign;
+global ax1_info;
+global ax2;
+global ax3;
+global zoom_is_clicked;
+global start_zoom;
+global hold_zoom_start;
+global hold_zoom_end;
+global is_zoomed;
+global handle_prec_cont;
+global handle_threshold;
+global handle_window;
+global handle_CID_tol;
+global handle_HCD_tol;
+global handle_msconvert;
+
+init_globals;
+load_settings;
+init_gui;
+
     function init_channels()
         iTRAQType = {};
         iTRAQ_masses = [];
@@ -188,46 +228,10 @@ global TMT_10_plex_labels;
 
         b_names_keep = {};
         y_names_keep = {};
+
+        % Maximum number of peaks in MS2 before excluded
+        max_num_peaks = 50;
     end
-
-init_globals;
-load_settings;
-
-max_num_peaks = 50;         % Maximum number of peaks in MS2 before excluded
-
-global h;
-global handle1;
-global handle2;
-global handle3;
-global handle_RR;
-global handle_export;
-global handle_reset;
-global handle_process_anyway;
-global handle_search;
-global handle_transfer;
-global handle_file;
-global handle_file_continue;
-global handle_file_save;
-global handle_batch_process;
-global ax0;
-global h1;
-global h_code;
-global ax1;
-global ax1_assign;
-global ax1_info;
-global ax2;
-global ax3;
-global zoom_is_clicked;
-global start_zoom;
-global hold_zoom_start;
-global hold_zoom_end;
-global is_zoomed;
-global handle_prec_cont;
-global handle_threshold;
-global handle_window;
-global handle_CID_tol;
-global handle_HCD_tol;
-global handle_msconvert;
 
     function init_gui()
         % Tree
@@ -373,8 +377,6 @@ global handle_msconvert;
             'string', '10');
         text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     end
-
-init_gui;
 
     function resetGUI(~, ~)
         
@@ -660,38 +662,37 @@ init_gui;
         jtree.treeDidChange();
         
         % Add to list to be printed
-        id = regexp(node.getValue,'\.','split');
+        id = regexp(node.getValue, '\.', 'split');
         scan = id{1};
         choice = id{2};
         
         data{str2num(scan)}.fragments{str2num(choice)}.status = 1;
         
-        found = 0;
+        % Check if the scan was already accepted
         for i = 1:length(accept_list)
-            if strcmp(accept_list{i}.scan,scan) && strcmp(accept_list{i}.choice,choice)
-                found = 1;
+            if strcmp(accept_list{i}.scan, scan) && ...
+                    strcmp(accept_list{i}.choice, choice)
+                return;
             end
         end
-        if ~found
-            accept_list{end+1}.scan = scan;
-            accept_list{end}.choice = choice;
-            
-            for i = 1:length(reject_list)
-                if strcmp(reject_list{i}.scan,scan) && strcmp(reject_list{i}.choice,choice)
-                    found = 1;
-                    reject_list(i) = '';
-                    break;
-                end
+        
+        % Otherwise accept it and remove it from the reject / maybe list
+        accept_list{end + 1}.scan = scan;
+        accept_list{end}.choice = choice;
+
+        for i = 1:length(reject_list)
+            if strcmp(reject_list{i}.scan, scan) && ...
+                    strcmp(reject_list{i}.choice, choice)
+                reject_list(i) = '';
+                return;
             end
-            
-            if ~found
-                for i = 1:length(maybe_list)
-                    if strcmp(maybe_list{i}.scan,scan) && strcmp(maybe_list{i}.choice,choice)
-                        found = 1;
-                        maybe_list(i) = '';
-                        break;
-                    end
-                end
+        end
+
+        for i = 1:length(maybe_list)
+            if strcmp(maybe_list{i}.scan, scan) && ...
+                    strcmp(maybe_list{i}.choice, choice)
+                maybe_list(i) = '';
+                return;
             end
         end
     end
@@ -707,38 +708,37 @@ init_gui;
         node.setIcon(im2java(imread([images_dir, 'red.jpg'])));
         jtree.treeDidChange();
         
-        id = regexp(node.getValue,'\.','split');
+        id = regexp(node.getValue, '\.', 'split');
         scan = id{1};
         choice = id{2};
         
         data{str2num(scan)}.fragments{str2num(choice)}.status = 3;
         
-        found = 0;
+        % Check if the scan was already rejected
         for i = 1:length(reject_list)
-            if strcmp(reject_list{i}.scan,scan) && strcmp(reject_list{i}.choice,choice)
-                found = 1;
+            if strcmp(reject_list{i}.scan, scan) && ...
+                    strcmp(reject_list{i}.choice, choice)
+                return;
             end
         end
-        if ~found
-            reject_list{end+1}.scan = scan;
-            reject_list{end}.choice = choice;
-            
-            for i = 1:length(accept_list)
-                if strcmp(accept_list{i}.scan,scan) && strcmp(accept_list{i}.choice,choice)
-                    found = 1;
-                    accept_list(i) = '';
-                    break;
-                end
+        
+        % Otherwise reject it and remove it from the accept / maybe list
+        reject_list{end + 1}.scan = scan;
+        reject_list{end}.choice = choice;
+
+        for i = 1:length(accept_list)
+            if strcmp(accept_list{i}.scan, scan) && ...
+                    strcmp(accept_list{i}.choice, choice)
+                accept_list(i) = '';
+                return;
             end
-            
-            if ~found
-                for i = 1:length(maybe_list)
-                    if strcmp(maybe_list{i}.scan,scan) && strcmp(maybe_list{i}.choice,choice)
-                        found = 1;
-                        maybe_list(i) = '';
-                        break;
-                    end
-                end
+        end
+
+        for i = 1:length(maybe_list)
+            if strcmp(maybe_list{i}.scan, scan) && ...
+                    strcmp(maybe_list{i}.choice, choice)
+                maybe_list(i) = '';
+                return;
             end
         end
     end
@@ -755,38 +755,37 @@ init_gui;
         jtree.treeDidChange();
         
         % Add to list to be printed
-        id = regexp(node.getValue,'\.','split');
+        id = regexp(node.getValue, '\.', 'split');
         scan = id{1};
         choice = id{2};
         
         data{str2num(scan)}.fragments{str2num(choice)}.status = 2;
         
-        found = 0;
+        % Check if the scan was already maybed
         for i = 1:length(maybe_list)
-            if strcmp(maybe_list{i}.scan,scan) && strcmp(maybe_list{i}.choice,choice)
-                found = 1;
+            if strcmp(maybe_list{i}.scan, scan) && ...
+                    strcmp(maybe_list{i}.choice, choice)
+                return;
             end
         end
-        if ~found
-            maybe_list{end+1}.scan = scan;
-            maybe_list{end}.choice = choice;
-            
-            for i = 1:length(reject_list)
-                if strcmp(reject_list{i}.scan,scan) && strcmp(reject_list{i}.choice,choice)
-                    found = 1;
-                    reject_list(i) = '';
-                    break;
-                end
+        
+        % Otherwise maybe it and remove it from the reject / accept list
+        maybe_list{end + 1}.scan = scan;
+        maybe_list{end}.choice = choice;
+
+        for i = 1:length(reject_list)
+            if strcmp(reject_list{i}.scan, scan) && ...
+                    strcmp(reject_list{i}.choice, choice)
+                reject_list(i) = '';
+                return;
             end
-            
-            if ~found
-                for i = 1:length(accept_list)
-                    if strcmp(accept_list{i}.scan,scan) && strcmp(accept_list{i}.choice,choice)
-                        found = 1;
-                        accept_list(i) = '';
-                        break;
-                    end
-                end
+        end
+
+        for i = 1:length(accept_list)
+            if strcmp(accept_list{i}.scan, scan) && ...
+                    strcmp(accept_list{i}.choice, choice)
+                accept_list(i) = '';
+                return;
             end
         end
     end
@@ -1052,7 +1051,7 @@ init_gui;
         end
     end
 
-% Used to make publication quality tiff's of single MS2 scans
+    %%% Used to make publication quality tiff's of single MS2 scans
     function print_ms2(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
@@ -1171,9 +1170,9 @@ init_gui;
         
     end
 
-% Process multiple files from the same folder. Ensure that RAW and XML are
-% in the same folder with the same name. If scan lists are to be used, they
-% must also be in the same folder with the same names.
+    %%% Process multiple files from the same folder. Ensure that RAW and XML are
+    %%% in the same folder with the same name. If scan lists are to be used, they
+    %%% must also be in the same folder with the same names.
     function batch_process(~, ~)
         
         [names, path] = uigetfile({'*.raw','RAW Files'}, 'MultiSelect', 'on');
@@ -1286,11 +1285,8 @@ init_gui;
         end
     end
 
-% Upload file
+    %%% Upload file
     function upload(~, ~)
-        
-        global thepath;
-        
         h2 = figure('pos',[400,400,500,200], 'WindowStyle', 'modal');
         set(gcf,'name','File Selection','numbertitle','off', 'MenuBar', 'none');
         set(gca,'Visible', 'off', 'Position', [0 0 1 1]);
@@ -1660,7 +1656,7 @@ init_gui;
     function transfer(~, ~)
         global R K k;
         cd('input');
-        [trans_filename, path] = uigetfile({'*.mat','MAT Files'});
+        [trans_filename, ~] = uigetfile({'*.mat','MAT Files'});
         cd('..');
         if trans_filename
             print_now('Loading...');
@@ -1808,7 +1804,6 @@ init_gui;
         node = nodes(1);
         
         scan_curr = regexp(node.getValue, '\.', 'split');
-        scan_prev = regexp(prev_node, '\.', 'split');
         
         % Check if new node selected
         if strcmp(node.getValue, prev_node)
@@ -3382,7 +3377,7 @@ init_gui;
         hold off;
     end
 
-% Plot precursor region data onto active axes
+    %%% Plot precursor region data onto active axes
     function plot_prec(scan)
         
         title('Precursor');
