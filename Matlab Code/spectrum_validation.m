@@ -6,241 +6,375 @@ close all
 import javax.swing.*
 import javax.swing.tree.*;
 
-RAW_filename = '';
-RAW_path = '';
-RAW_path_ns = '';
-XML_filename = '';
-XML_path = '';
-XML_path_ns = '';
-OUT_path = '';
-OUT_path_ns = '';
-filename = '';
-SL_path = '';
-SL_filename = '';
+global RAW_filename;
+global RAW_path;
+global RAW_path_ns;
+global XML_filename;
+global XML_path;
+global XML_path_ns;
+global OUT_path;
+global OUT_path_ns;
+global filename;
+global SL_path;
+global SL_filename;
+global msconvert_full_path;
+global images_dir;
+global data;
+global mtree;
+global jtree;
+global prev_node;
+global iTRAQType;
+global iTRAQ_masses;
+global iTRAQ_labels;
+global SILAC;
+global SILAC_R6;
+global SILAC_R10;
+global SILAC_K6;
+global SILAC_K8;
+global CID_tol;
+global HCD_tol;
+global accept_list;
+global maybe_list;
+global reject_list;
+global new_accept_list;
+global new_maybe_list;
+global cont_thresh;
+global cont_window;
+global b_names_keep;
+global y_names_keep;
+global iTRAQ_4_plex_masses;
+global iTRAQ_4_plex_labels;
+global TMT_6_plex_masses;
+global TMT_6_plex_labels;
+global iTRAQ_8_plex_masses;
+global iTRAQ_8_plex_labels;
+global TMT_10_plex_masses;
+global TMT_10_plex_labels;
 
-% msconvert_full_path = 'C:\Users\Tim\Desktop\Lab\Data\Code\SpectrumValidation\MATLAB_GUI\New\ProteoWizard\"ProteoWizard 3.0.4323"\msconvert';
-msconvert_full_path = 'ProteoWizard\ProteoWizard 3.0.9205\msconvert';
-images_dir = [fileparts(fileparts(mfilename('fullpath'))), '\images\'];
+    function init_channels()
+        iTRAQType = {};
+        iTRAQ_masses = [];
+        iTRAQ_labels = {};
 
-data = {};
-mtree = 0;
-jtree = 0;
-prev_node = '';
+        SILAC = false;
+        SILAC_R6 = false;
+        SILAC_R10 = false;
+        SILAC_K6 = false;
+        SILAC_K8 = false;
+        
+        iTRAQ_4_plex_masses = [ ...
+            114.1106798, ...
+            115.1077147, ...
+            116.1110695, ...
+            117.1144243 ...
+        ];
 
+        iTRAQ_4_plex_labels = { ...
+            '114', ...
+            '115', ...
+            '116', ...
+            '117' ...
+        };
 
-% iTRAQ_type = 8;
-iTRAQType = {};
-iTRAQ_masses = [];
-iTRAQ_labels = {};
+        TMT_6_plex_masses = [ ...
+            126.127726, ...
+            127.124761, ...
+            128.134436, ...
+            129.131471, ...
+            130.141145, ...
+            131.138180 ...
+        ];
 
-SILAC = false;
-SILAC_R6 = false;
-SILAC_R10 = false;
-SILAC_K6 = false;
-SILAC_K8 = false;
+        TMT_6_plex_labels = { ...
+            '126', ...
+            '127', ...
+            '128', ...
+            '129', ...
+            '130', ...
+            '131' ...
+        };
 
-CID_tol = 1000;
-HCD_tol = 10;
+        iTRAQ_8_plex_masses = [ ...
+            113.107873, ...
+            114.111228, ...
+            115.108263, ...
+            116.111618, ...
+            117.114973, ...
+            118.112008, ...
+            119.115363, ...
+            121.122072 ...
+        ];
 
-accept_list = {};
-maybe_list = {};
-reject_list = {};
+        iTRAQ_8_plex_labels = { ...
+            '113', ...
+            '114', ...
+            '115', ...
+            '116', ...
+            '117', ...
+            '118', ...
+            '119', ...
+            '121' ...
+        };
 
-new_accept_list = {};
-new_maybe_list = {};
+        %%% XXX: Are these all correct? 230 / 248?
+        TMT_10_plex_masses = [ ...
+            126.127726, ...
+            127.124761, ...
+            127.131081, ...
+            128.128116, ...
+            128.134436, ...
+            129.131471, ...
+            129.137790, ...
+            130.134825, ...
+            130.141145, ...
+            131.138180, ...
+            230.1694, ...
+            248.1802 ...
+        ];
 
-cont_thresh = 100;
-cont_window = 1;  % this needs to be changed to actual fragmentation window (see ^^^)
+        TMT_10_plex_labels = { ...
+            '126', ...
+            '127N', ...
+            '127C', ...
+            '128N', ...
+            '128C', ...
+            '129N', ...
+            '129C', ...
+            '130N', ...
+            '130C', ...
+            '131', ...
+            '230', ...
+            '248' ...
+        };
+    end
 
-b_names_keep = {};
-y_names_keep = {};
+    function init_globals()
+        RAW_filename = '';
+        RAW_path = '';
+        RAW_path_ns = '';
+        XML_filename = '';
+        XML_path = '';
+        XML_path_ns = '';
+        OUT_path = '';
+        OUT_path_ns = '';
+        filename = '';
+        SL_path = '';
+        SL_filename = '';
 
+        % msconvert_full_path = 'C:\Users\Tim\Desktop\Lab\Data\Code\SpectrumValidation\MATLAB_GUI\New\ProteoWizard\"ProteoWizard 3.0.4323"\msconvert';
+        msconvert_full_path = 'ProteoWizard\ProteoWizard 3.0.9205\msconvert';
+        images_dir = [fileparts(fileparts(mfilename('fullpath'))), '\images\'];
+
+        data = {};
+        mtree = 0;
+        jtree = 0;
+        prev_node = '';
+
+        init_channels;
+
+        CID_tol = 1000;
+        HCD_tol = 10;
+
+        accept_list = {};
+        maybe_list = {};
+        reject_list = {};
+
+        new_accept_list = {};
+        new_maybe_list = {};
+
+        cont_thresh = 100;
+        % this needs to be changed to actual fragmentation window (see ^^^)
+        cont_window = 1;
+
+        b_names_keep = {};
+        y_names_keep = {};
+    end
+
+init_globals;
 load_settings;
 
 max_num_peaks = 50;         % Maximum number of peaks in MS2 before excluded
 
-iTRAQ_4_plex_masses = [ ...
-    114.1106798, ...
-    115.1077147, ...
-    116.1110695, ...
-    117.1144243 ...
-];
+global h;
+global handle1;
+global handle2;
+global handle3;
+global handle_RR;
+global handle_export;
+global handle_reset;
+global handle_process_anyway;
+global handle_search;
+global handle_transfer;
+global handle_file;
+global handle_file_continue;
+global handle_file_save;
+global handle_batch_process;
+global ax0;
+global h1;
+global h_code;
+global ax1;
+global ax1_assign;
+global ax1_info;
+global ax2;
+global ax3;
+global zoom_is_clicked;
+global start_zoom;
+global hold_zoom_start;
+global hold_zoom_end;
+global is_zoomed;
+global handle_prec_cont;
+global handle_threshold;
+global handle_window;
+global handle_CID_tol;
+global handle_HCD_tol;
+global handle_msconvert;
 
-iTRAQ_4_plex_labels = { ...
-    '114', ...
-    '115', ...
-    '116', ...
-    '117' ...
-};
+    function init_gui()
+        % Tree
+        h = figure('pos', [150, 100, 1200, 600], 'KeyPressFcn', @keyInput);
+        set(gcf, 'name', 'Spectrum Validation', 'numbertitle', 'off', 'MenuBar', 'none');
 
-TMT_6_plex_masses = [ ...
-    126.127726, ...
-    127.124761, ...
-    128.134436, ...
-    129.131471, ...
-    130.141145, ...
-    131.138180 ...
-];
+        % Buttons
+        handle1 = uicontrol('Style', 'pushbutton', 'String', 'Accept',...
+            'Enable', 'off',...
+            'BackgroundColor', 'g',...
+            'Position', [800 20 50 20],...
+            'Callback', @accept);
 
-TMT_6_plex_labels = { ...
-    '126', ...
-    '127', ...
-    '128', ...
-    '129', ...
-    '130', ...
-    '131' ...
-};
+        handle2 = uicontrol('Style', 'pushbutton', 'String', 'Maybe',...
+            'Enable', 'off',...
+            'BackgroundColor', [1 0.5 0.2],...
+            'Position', [850 20 50 20],...
+            'Callback', @maybe);
 
-iTRAQ_8_plex_masses = [ ...
-    113.107873, ...
-    114.111228, ...
-    115.108263, ...
-    116.111618, ...
-    117.114973, ...
-    118.112008, ...
-    119.115363, ...
-    121.122072 ...
-];
+        handle3 = uicontrol('Style', 'pushbutton', 'String', 'Reject',...
+            'Enable', 'off',...
+            'BackgroundColor', 'r',...
+            'Position', [900 20 50 20],...
+            'Callback', @reject);
 
-iTRAQ_8_plex_labels = { ...
-    '113', ...
-    '114', ...
-    '115', ...
-    '116', ...
-    '117', ...
-    '118', ...
-    '119', ...
-    '121' ...
-};
+        handle_RR = uicontrol('KeyPressFcn', @keyInput, 'Enable', 'off');
 
-%%% XXX: Are these all correct? 230 / 248?
-TMT_10_plex_masses = [ ...
-    126.127726, ...
-    127.124761, ...
-    127.131081, ...
-    128.128116, ...
-    128.134436, ...
-    129.131471, ...
-    129.137790, ...
-    130.134825, ...
-    130.141145, ...
-    131.138180, ...
-    230.1694, ...
-    248.1802 ...
-];
+        handle_export = uicontrol('Style', 'pushbutton', 'String', 'Export...',...
+            'Enable', 'off',...
+            'Position', [1080 20 100 20],...
+            'Callback', @display_export);
 
-TMT_10_plex_labels = { ...
-    '126', ...
-    '127N', ...
-    '127C', ...
-    '128N', ...
-    '128C', ...
-    '129N', ...
-    '129C', ...
-    '130N', ...
-    '130C', ...
-    '131', ...
-    '230', ...
-    '248' ...
-};
+        handle_reset = uicontrol('Style', 'pushbutton', 'String', 'Reset Session',...
+            'Enable', 'off',...
+            'Position', [860 500 100 20],...
+            'Callback', @resetGUI);
 
-% Tree
-h = figure('pos', [150, 100, 1200, 600], 'KeyPressFcn', @keyInput);
-set(gcf, 'name', 'Spectrum Validation', 'numbertitle', 'off', 'MenuBar', 'none');
+        % handle_print_curr_ms2 = uicontrol('Style', 'pushbutton', 'String', 'Print Current MS2',...
+        %     'Position', [1080 0 100 20],...
+        %     'Callback', @print_ms2);
 
+        handle_process_anyway = uicontrol('Style', 'pushbutton', 'String', 'Process Anyway',...
+            'Enable', 'off',...
+            'Visible', 'off',...
+            'Position', [250 525 100 20],...
+            'Callback', @process_anyway);
 
-% Buttons
-handle1 = uicontrol('Style', 'pushbutton', 'String', 'Accept',...
-    'Enable', 'off',...
-    'BackgroundColor', 'g',...
-    'Position', [800 20 50 20],...
-    'Callback', @accept);
+        handle_search = uicontrol('Style', 'pushbutton', 'String', 'Search',...
+            'Enable', 'off',...
+            'Visible', 'off',...
+            'Position', [2 2 100 20],...
+            'Callback', @search);
 
-handle2 = uicontrol('Style', 'pushbutton', 'String', 'Maybe',...
-    'Enable', 'off',...
-    'BackgroundColor', [1 0.5 0.2],...
-    'Position', [850 20 50 20],...
-    'Callback', @maybe);
+        handle_transfer = uicontrol('Style', 'pushbutton', 'String', 'Transfer Choices',...
+            'Enable', 'off',...
+            'Visible', 'off',...
+            'Position', [102 2 100 20],...
+            'Callback', @transfer);
 
-handle3 = uicontrol('Style', 'pushbutton', 'String', 'Reject',...
-    'Enable', 'off',...
-    'BackgroundColor', 'r',...
-    'Position', [900 20 50 20],...
-    'Callback', @reject);
+        handle_file = uicontrol('Style', 'pushbutton', 'String', 'Get File','Position', [250 20 50 20],'Callback', @upload);
+        handle_file_continue = uicontrol('Style', 'pushbutton', 'String', 'Load Session','Position', [300 20 75 20],'Callback', @load_session);
+        handle_file_save = uicontrol('Style', 'pushbutton', 'String', 'Save Session','Position', [375 20 75 20],'Callback', @save_session,'Enable', 'off');
 
-handle_RR = uicontrol('KeyPressFcn', @keyInput, 'Enable', 'off');
+        % handle_settings = uicontrol('Style', 'pushbutton', 'String', 'Change Settings', 'Position', [10, 150, 100, 20], 'Callback', @change_settings);
 
-handle_export = uicontrol('Style', 'pushbutton', 'String', 'Export...',...
-    'Enable', 'off',...
-    'Position', [1080 20 100 20],...
-    'Callback', @display_export);
+        handle_batch_process = uicontrol('Style', 'pushbutton', 'String', 'Batch Process', 'Position', [10, 100, 100, 20], 'Callback', @batch_process);
 
-handle_reset = uicontrol('Style', 'pushbutton', 'String', 'Reset Session',...
-    'Enable', 'off',...
-    'Position', [860 500 100 20],...
-    'Callback', @resetGUI);
+        ax0 = axes('Position', [0,0,1,1], 'Visible', 'off');
+        h1 = text(500,20, '', 'Units', 'pixels', 'Interpreter', 'none');
+        h_code = text(250,550, '', 'Units', 'pixels', 'Interpreter', 'none','FontWeight','bold','Color','r');
 
-% handle_print_curr_ms2 = uicontrol('Style', 'pushbutton', 'String', 'Print Current MS2',...
-%     'Position', [1080 0 100 20],...
-%     'Callback', @print_ms2);
+        % MS2 data
+        ax1 = axes('Position', [.2,.125,.6,.7], 'TickDir', 'out', 'box', 'off');
 
-handle_process_anyway = uicontrol('Style', 'pushbutton', 'String', 'Process Anyway',...
-    'Enable', 'off',...
-    'Visible', 'off',...
-    'Position', [250 525 100 20],...
-    'Callback', @process_anyway);
+        % MS2 Peak Assignments
+        ax1_assign = axes('Position', [.2,.125,.6,.7], 'Visible', 'off');
+        linkaxes([ax1,ax1_assign],'xy');
 
-handle_search = uicontrol('Style', 'pushbutton', 'String', 'Search',...
-    'Enable', 'off',...
-    'Visible', 'off',...
-    'Position', [2 2 100 20],...
-    'Callback', @search);
+        % Write Information onto plot
+        ax1_info = axes('Position', [.2,.125,.6,.7], 'Visible', 'off');
 
-handle_transfer = uicontrol('Style', 'pushbutton', 'String', 'Transfer Choices',...
-    'Enable', 'off',...
-    'Visible', 'off',...
-    'Position', [102 2 100 20],...
-    'Callback', @transfer);
+        % Precursor Window
+        ax2 = axes('Position', [.84,.5,.14,.25], 'TickDir', 'out', 'box', 'off');
+        text(.5,1.1,'Precursor', 'HorizontalAlignment', 'center');
 
-handle_file = uicontrol('Style', 'pushbutton', 'String', 'Get File','Position', [250 20 50 20],'Callback', @upload);
-handle_file_continue = uicontrol('Style', 'pushbutton', 'String', 'Load Session','Position', [300 20 75 20],'Callback', @load_session);
-handle_file_save = uicontrol('Style', 'pushbutton', 'String', 'Save Session','Position', [375 20 75 20],'Callback', @save_session,'Enable', 'off');
+        % Now initialized after iTRAQ presence is confirmed
+        % % iTRAQ Window
+        ax3 = axes('Position', [.84,.125,.14,.25], 'TickDir', 'out', 'box', 'off','Visible','off');
+        % text(.5,1.1,'iTRAQ', 'HorizontalAlignment', 'center');
 
-% handle_settings = uicontrol('Style', 'pushbutton', 'String', 'Change Settings', 'Position', [10, 150, 100, 20], 'Callback', @change_settings);
+        zoom_is_clicked = 0;
+        start_zoom = 0;
+        hold_zoom_start = 0;
+        hold_zoom_end = 0;
+        is_zoomed = 0;
+        
+        % Precursor Contamination
+        handle_prec_cont = uicontrol( ...
+            'Style', 'checkbox', ...
+            'String', 'Exclude Precursor Contamination?', ...
+            'Position', [10, 500, 200, 20], ...
+            'Callback', @prec_cont_checked ...
+        );
 
-handle_batch_process = uicontrol('Style', 'pushbutton', 'String', 'Batch Process', 'Position', [10, 100, 100, 20], 'Callback', @batch_process);
+        handle_threshold = uicontrol('Style', 'edit', ...
+            'Position', [30, 480, 50, 20], ...
+            'Enable', 'off', ...
+            'string', num2str(cont_thresh));
+
+        handle_window = uicontrol('Style', 'edit', ...
+            'Position', [30, 460, 50, 20], ...
+            'Enable', 'off', ...
+            'string', num2str(cont_window));
+
+        function prec_cont_checked(~, ~)
+            if get(handle_prec_cont,'Value')
+                set(handle_threshold,'Enable','on');
+                set(handle_window,'Enable','on');
+            else
+                set(handle_threshold,'Enable','off');
+                set(handle_window,'Enable','off');
+            end
+        end
+
+        % Scan Number List
+        % handle_scan_number_list = uicontrol('Style','checkbox','String','Use scan list (XLS)?','Position',[10,400,200,20]);
+
+        axes(ax0);
+        text(80,490, '%', 'Units', 'pixels', 'Interpreter', 'none');
+        text(80,470, '+/- m/z', 'Units', 'pixels', 'Interpreter', 'none');
 
 
+        % MS2 Tolerances
+        handle_CID_tol = uicontrol('Style','edit',...
+            'Position',[100,350,50,20],...
+            'Enable','on',...
+            'string', '1000');
+        text(10,360,'CID Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 
-ax0 = axes('Position', [0,0,1,1], 'Visible', 'off');
-h1 = text(500,20, '', 'Units', 'pixels', 'Interpreter', 'none');
-h_code = text(250,550, '', 'Units', 'pixels', 'Interpreter', 'none','FontWeight','bold','Color','r');
+        handle_HCD_tol = uicontrol('Style','edit',...
+            'Position',[100,325,50,20],...
+            'Enable','on', ...
+            'string', '10');
+        text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
+    end
 
-% MS2 data
-ax1 = axes('Position', [.2,.125,.6,.7], 'TickDir', 'out', 'box', 'off');
-
-% MS2 Peak Assignments
-ax1_assign = axes('Position', [.2,.125,.6,.7], 'Visible', 'off');
-linkaxes([ax1,ax1_assign],'xy');
-
-% Write Information onto plot
-ax1_info = axes('Position', [.2,.125,.6,.7], 'Visible', 'off');
-
-% Precursor Window
-ax2 = axes('Position', [.84,.5,.14,.25], 'TickDir', 'out', 'box', 'off');
-text(.5,1.1,'Precursor', 'HorizontalAlignment', 'center');
-
-% Now initialized after iTRAQ presence is confirmed
-% % iTRAQ Window
-ax3 = axes('Position', [.84,.125,.14,.25], 'TickDir', 'out', 'box', 'off','Visible','off');
-% text(.5,1.1,'iTRAQ', 'HorizontalAlignment', 'center');
-
-zoom_is_clicked = 0;
-start_zoom = 0;
-hold_zoom_start = 0;
-hold_zoom_end = 0;
-is_zoomed = 0;
-
+init_gui;
 
     function resetGUI(~, ~)
         
@@ -262,199 +396,16 @@ is_zoomed = 0;
             
             close(gcf)
             
-            RAW_filename = '';
-            RAW_path = '';
-            RAW_path_ns = '';
-            XML_filename = '';
-            XML_path = '';
-            XML_path_ns = '';
-            OUT_path = '';
-            OUT_path_ns = '';
-            filename = '';
-            SL_path = '';
-            SL_filename = '';
-            
-            data = {};
-            mtree = 0;
-            jtree = 0;
-            prev_node = '';
-            
-            
-            % iTRAQ_type = 8;
-            iTRAQType = {};
-            iTRAQ_masses = [];
-            iTRAQ_labels = {};
-            
-            SILAC = false;
-            SILAC_R6 = false;
-            SILAC_R10 = false;
-            SILAC_K6 = false;
-            SILAC_K8 = false;
-            
-            CID_tol = 1000;
-            HCD_tol = 10;
-            
-            accept_list = {};
-            maybe_list = {};
-            reject_list = {};
-            
-            new_accept_list = {};
-            new_maybe_list = {};
-            
-            b_names_keep = {};
-            y_names_keep = {};
-            
+            init_globals;
             load_settings;
-            
-            % Tree
-            h = figure('pos', [150, 100, 1200, 600], 'KeyPressFcn', @keyInput);
-            set(gcf,'name','Spectrum Validation','numbertitle','off', 'MenuBar', 'none');
-            
-            
-            % Buttons
-            
-            handle1 = uicontrol('Style', 'pushbutton', 'String', 'Accept',...
-                'Enable', 'off',...
-                'BackgroundColor', 'g',...
-                'Position', [800 20 50 20],...
-                'Callback', @accept);
-            
-            handle2 = uicontrol('Style', 'pushbutton', 'String', 'Maybe',...
-                'Enable', 'off',...
-                'BackgroundColor', [1 0.5 0.2],...
-                'Position', [850 20 50 20],...
-                'Callback', @maybe);
-            
-            handle3 = uicontrol('Style', 'pushbutton', 'String', 'Reject',...
-                'Enable', 'off',...
-                'BackgroundColor', 'r',...
-                'Position', [900 20 50 20],...
-                'Callback', @reject);
-            
-            handle_RR = uicontrol('KeyPressFcn', @keyInput, 'Enable', 'off');
-            
-            handle_export = uicontrol('Style', 'pushbutton', 'String', 'Export...',...
-                'Enable', 'off',...
-                'Position', [1080 20 100 20],...
-                'Callback', @display_export);
-            
-            handle_reset = uicontrol('Style', 'pushbutton', 'String', 'Reset Session',...
-                'Enable', 'off',...
-                'Position', [860 500 100 20],...
-                'Callback', @resetGUI);
-            
-            % handle_print_curr_ms2 = uicontrol('Style', 'pushbutton', 'String', 'Print Current MS2',...
-            %     'Position', [1080 0 100 20],...
-            %     'Callback', @print_ms2);
-            
-            handle_process_anyway = uicontrol('Style', 'pushbutton', 'String', 'Process Anyway',...
-                'Enable', 'off',...
-                'Visible', 'off',...
-                'Position', [250 525 100 20],...
-                'Callback', @process_anyway);
-            
-            handle_search = uicontrol('Style', 'pushbutton', 'String', 'Search',...
-                'Enable', 'off',...
-                'Visible', 'off',...
-                'Position', [2 2 100 20],...
-                'Callback', @search);
-            
-            handle_transfer = uicontrol('Style', 'pushbutton', 'String', 'Transfer Choices',...
-                'Enable', 'off',...
-                'Visible', 'off',...
-                'Position', [102 2 100 20],...
-                'Callback', @transfer);
-            
-            handle_file = uicontrol('Style', 'pushbutton', 'String', 'Get File','Position', [250 20 50 20],'Callback', @upload);
-            handle_file_continue = uicontrol('Style', 'pushbutton', 'String', 'Load Session','Position', [300 20 75 20],'Callback', @load_session);
-            handle_file_save = uicontrol('Style', 'pushbutton', 'String', 'Save Session','Position', [375 20 75 20],'Callback', @save_session,'Enable', 'off');
-            
-            % handle_settings = uicontrol('Style', 'pushbutton', 'String', 'Change Settings', 'Position', [10, 150, 100, 20], 'Callback', @change_settings);
-            
-            handle_batch_process = uicontrol('Style', 'pushbutton', 'String', 'Batch Process', 'Position', [10, 100, 100, 20], 'Callback', @batch_process);
-            
-            
-            
-            ax0 = axes('Position', [0,0,1,1], 'Visible', 'off');
-            h1 = text(500,20, '', 'Units', 'pixels', 'Interpreter', 'none');
-            h_code = text(250,550, '', 'Units', 'pixels', 'Interpreter', 'none','FontWeight','bold','Color','r');
-            
-            % MS2 data
-            ax1 = axes('Position', [.2,.125,.6,.7], 'TickDir', 'out', 'box', 'off');
-            
-            % MS2 Peak Assignments
-            ax1_assign = axes('Position', [.2,.125,.6,.7], 'Visible', 'off');
-            linkaxes([ax1,ax1_assign],'xy');
-            
-            % Write Information onto plot
-            ax1_info = axes('Position', [.2,.125,.6,.7], 'Visible', 'off');
-            
-            % Precursor Window
-            ax2 = axes('Position', [.84,.5,.14,.25], 'TickDir', 'out', 'box', 'off');
-            text(.5,1.1,'Precursor', 'HorizontalAlignment', 'center');
-            
-            % Now initialized after iTRAQ presence is confirmed
-            % % iTRAQ Window
-            ax3 = axes('Position', [.84,.125,.14,.25], 'TickDir', 'out', 'box', 'off','Visible','off');
-            % text(.5,1.1,'iTRAQ', 'HorizontalAlignment', 'center');
-            
-            zoom_is_clicked = 0;
-            start_zoom = 0;
-            hold_zoom_start = 0;
-            hold_zoom_end = 0;
-            is_zoomed = 0;
-            
-            % Precursor Contamination
-            handle_prec_cont = uicontrol('Style','checkbox','String','Exclude Precursor Contamination?',...
-                'Position',[10,500,200,20],...
-                'Callback',@prec_cont_checked);
-            
-            handle_threshold = uicontrol('Style','edit',...
-                'Position',[30,480,50,20],...
-                'Enable','off',...
-                'string', num2str(cont_thresh));
-            
-            handle_window = uicontrol('Style','edit',...
-                'Position',[30,460,50,20],...
-                'Enable','off',...
-                'string', num2str(cont_window));
-            
-            if get(handle_prec_cont,'Value')
-                set(handle_threshold,'Enable','on');
-                set(handle_window,'Enable','on');
-            else
-                set(handle_threshold,'Enable','off');
-                set(handle_window,'Enable','off');
-            end
-            
-            % Scan Number List
-            % handle_scan_number_list = uicontrol('Style','checkbox','String','Use scan list (XLS)?','Position',[10,400,200,20]);
-            
-            axes(ax0);
-            text(80,490, '%', 'Units', 'pixels', 'Interpreter', 'none');
-            text(80,470, '+/- m/z', 'Units', 'pixels', 'Interpreter', 'none');
-            
-            
-            % MS2 Tolerances
-            handle_CID_tol = uicontrol('Style','edit',...
-                'Position',[100,350,50,20],...
-                'Enable','on',...
-                'string', '1000');
-            text(10,360,'CID Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
-            
-            handle_HCD_tol = uicontrol('Style','edit',...
-                'Position',[100,325,50,20],...
-                'Enable','on', ...
-                'string', '10');
-            text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
+            init_gui;
         end
     end
 
-% Zoom in upon user clicks to the MS2 window
-%
-% Two single clicks define boundaries of zoom window
-% Double click zooms out
-
+    %%% Zoom in upon user clicks to the MS2 window
+    %
+    % Two single clicks define boundaries of zoom window
+    % Double click zooms out
     function zoom_MS2(~,~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
@@ -566,52 +517,6 @@ is_zoomed = 0;
             end
         end
     end
-
-% Precursor Contamination
-handle_prec_cont = uicontrol('Style','checkbox','String','Exclude Precursor Contamination?',...
-    'Position',[10,500,200,20],...
-    'Callback',@prec_cont_checked);
-
-handle_threshold = uicontrol('Style','edit',...
-    'Position',[30,480,50,20],...
-    'Enable','off',...
-    'string', num2str(cont_thresh));
-
-handle_window = uicontrol('Style','edit',...
-    'Position',[30,460,50,20],...
-    'Enable','off',...
-    'string', num2str(cont_window));
-
-    function prec_cont_checked(~, ~)
-        if get(handle_prec_cont,'Value')
-            set(handle_threshold,'Enable','on');
-            set(handle_window,'Enable','on');
-        else
-            set(handle_threshold,'Enable','off');
-            set(handle_window,'Enable','off');
-        end
-    end
-
-% Scan Number List
-% handle_scan_number_list = uicontrol('Style','checkbox','String','Use scan list (XLS)?','Position',[10,400,200,20]);
-
-axes(ax0);
-text(80,490, '%', 'Units', 'pixels', 'Interpreter', 'none');
-text(80,470, '+/- m/z', 'Units', 'pixels', 'Interpreter', 'none');
-
-
-% MS2 Tolerances
-handle_CID_tol = uicontrol('Style','edit',...
-    'Position',[100,350,50,20],...
-    'Enable','on',...
-    'string', '1000');
-text(10,360,'CID Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
-
-handle_HCD_tol = uicontrol('Style','edit',...
-    'Position',[100,325,50,20],...
-    'Enable','on', ...
-    'string', '10');
-text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 
     %%% Handle selecting elements of the tree from the spectra view
     function update_tree()
@@ -939,7 +844,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq] ...
                 );
                 
-                if ~exist([dir_path, fig_name, '.pdf'],'file')
+                if ~exist([dir_path, fig_name, '.pdf'], 'file')
                     print_pdf(scan, id, [dir_path, fig_name]);
                 end
             end
@@ -1283,7 +1188,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             filename = regexprep(filename,'.raw','');
             filename = regexprep(filename,'.xml','');
             
-            if ~exist([path,filename,'.xml'])
+            if ~exist([path, filename, '.xml'], 'file')
                 msgbox(['File not found: ',path,filename,'.xml'])
             else
                 filename = names;
@@ -1316,16 +1221,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 end
                 
                 data = {};
-                
-                iTRAQType = {};
-                iTRAQ_masses = [];
-                iTRAQ_labels = {};
-                
-                SILAC = false;
-                SILAC_R6 = false;
-                SILAC_R10 = false;
-                SILAC_K6 = false;
-                SILAC_K8 = false;
+                init_channels;
             end
         else
             % Multiple RAW files selected
@@ -1337,7 +1233,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 filename = regexprep(filename,'.raw','');
                 filename = regexprep(filename,'.xml','');
                 
-                if ~exist([path,filename,'.xml'])
+                if ~exist([path, filename, '.xml'], 'file')
                     files_not_found{end+1} = [path,filename,'.xml'];
                 end
                 
@@ -1383,16 +1279,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                     print_now('');
                     
                     data = {};
-                    
-                    iTRAQType = {};
-                    iTRAQ_masses = [];
-                    iTRAQ_labels = {};
-                    
-                    SILAC = false;
-                    SILAC_R6 = false;
-                    SILAC_R10 = false;
-                    SILAC_K6 = false;
-                    SILAC_K8 = false;
+                    init_channels;
                 end
             end
             %          end
@@ -1551,7 +1438,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     function load_session(~, ~)
         [LOAD_filename, LOAD_path] = uigetfile({'*.mat','MAT Files'});
         
-        if exist([LOAD_path,'\',LOAD_filename])
+        if exist([LOAD_path, '\', LOAD_filename], 'file')
             print_now('Loading...');
             set(handle_file,'Enable', 'off');
             set(handle_file_continue,'Enable', 'off');
@@ -1609,7 +1496,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             if ~strcmp(iTRAQType{1},'None')
                 set(ax3,'Visible', 'on');
             end
-            if isfield(temp, 'OUT_path') && exist(temp.OUT_path)
+            if isfield(temp, 'OUT_path') && exist(temp.OUT_path, 'dir')
                 OUT_path = temp.OUT_path;
             else
                 h2 = figure('pos',[400,400,500,200], 'WindowStyle', 'modal');
@@ -1643,7 +1530,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Save Session
+    %%% Save Session
     function save_session(~, ~)
         [SAVE_filename, SAVE_path] = uiputfile({'*.mat','MAT Files'},'Save Session As',[filename,'.mat']);
         print_now('Saving...');
@@ -1651,7 +1538,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         print_now('');
     end
 
-% Search by scan number or protein name
+    %%% Search by scan number or protein name
     function search(~, ~)
         h2 = figure('pos',[400,400,500,200], 'WindowStyle', 'modal');
         set(gcf,'name','Search','numbertitle','off', 'MenuBar', 'none');
@@ -1769,7 +1656,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Transfer choices from another .mat file for same run
+    %%% Transfer choices from another .mat file for same run
     function transfer(~, ~)
         global R K k;
         cd('input');
@@ -2057,7 +1944,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         prev_node = node.getValue; %workhere
     end
 
-% Handle mouse click on peak label
+    %%% Handle mouse click on peak label
     function labelCallback(a,~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
@@ -2161,8 +2048,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Read MASCOT output XML file
-%     function data = validate_spectra()
+    %%% Read MASCOT output XML file
     function validate_spectra()
         % Check if precursor contamination exclusion has been activated
         if get(handle_prec_cont,'Value')
@@ -2177,7 +2063,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
         
         temp_path = [OUT_path, filename];
-        if exist(temp_path,'dir') == 0
+        if exist(temp_path, 'dir') == 0
             mkdir(temp_path);
         end
         print_now(['Reading File: ', filename]);
@@ -2380,7 +2266,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         % Get scan data from RAW file
         scans_used = [];
         if ~isempty(SL_filename)
-            if exist([SL_path,'\',SL_filename])
+            if exist([SL_path, '\', SL_filename], 'file')
                 % Read only fron scan input list
                 temp = unique(xlsread([SL_path,SL_filename]));
                 
@@ -2908,7 +2794,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Retrieve Sequences and Assignments for previously excluded ID
+    %%% Retrieve Sequences and Assignments for previously excluded ID
     function process_anyway(~, ~)
         print_code_now('Processing...');
         
@@ -2976,7 +2862,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Build uitree in gui
+    %%% Build uitree in gui
     function [mtree, jtree] = build_tree(filename, data)
         print_now('');
         % Root node
@@ -3446,7 +3332,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Plot iTRAQ region data onto active axes
+    %%% Plot iTRAQ region data onto active axes
     function plot_iTRAQ(scan)
         %         axes(ax3);
         title('iTRAQ/TMT');
@@ -3558,8 +3444,8 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         hold off;
     end
 
-% Print PDF containing MS2 with assignment, peptide ladder, iTRAQ,
-% precursor, and run information
+    %%% Print PDF containing MS2 with assignment, peptide ladder, iTRAQ,
+    %   precursor, and run information
     function print_pdf(scan, id, fig_path)
         seq = data{scan}.fragments{id}.seq;
         protein = data{scan}.protein;
@@ -3766,7 +3652,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         fclose(XLS_out);
     end
 
-% Write XLS file with just the peptides and modifications in list
+    %%% Write XLS file with just the peptides and modifications in list
     function unlabelled_to_Excel(excel_list, out_path)
         XLS_out = fopen(out_path, 'w');
         title_line = ['Scan\t', 'Protein\t', 'Accession\t', 'Sequence\n'];
@@ -3782,7 +3668,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         fclose(XLS_out);
     end
 
-% Write XLS file with SILAC data for scans in list
+    %%% Write XLS file with SILAC data for scans in list
     function SILAC_to_Excel(excel_list, out_path)
         XLS_out = fopen(out_path, 'w');
         
@@ -3793,7 +3679,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             scan = str2num(excel_list{i}.scan);
             id = str2num(excel_list{i}.choice);
             
-            line = [num2str(data{scan}.scan_number), '\t', data{scan}.protein, '\t', data{scan}.gi, '\t', data{scan}.fragments{id}.seq, '\t'];
+            line = [num2str(data{scan}.scan_number), '\t', data{scan}.protein, '\t', data{scan}.gi, '\t', data{scan}.fragments{id}.seq];
             
             %%%
             mz = data{scan}.prec_scan_data(:,1);
@@ -3807,9 +3693,9 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
                 [val_int,idx2] = max(int(idx));
                 
                 if ~isempty(idx2)
-                    line = [line, num2str(val_int), '\t'];
+                    line = [line, '\t', num2str(val_int)];
                 else
-                    line = [line, num2str(0), '\t'];
+                    line = [line, '\t', num2str(0)];
                 end
             end
             line = [line, '\n'];
@@ -3818,7 +3704,7 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         fclose(XLS_out);
     end
 
-% Set masses of Arginine and Lysine based on SILAC and iTRAQ
+    %%% Set masses of Arginine and Lysine based on SILAC and iTRAQ
     function set_R_K(scan)
         global R K k;
         
@@ -3884,22 +3770,4 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
 % Extracts isolation m/z's for each scan from msconverts
 
 
-end
-
-%%% Safe version of MATLAB's system() that allows for spaces in file names.
-function [a,b] = systemsafe(varargin)
-cmd = '';
-for i=1:nargin
-    if i > 1
-        cmd = [cmd, ' '];
-    end
-    
-    if ~isempty(strfind(varargin{i}, ' '))
-        cmd = [cmd, sprintf('"%s"', strrep(varargin{i}, '\', '\\'))];
-    else
-        cmd = [cmd, sprintf('%s', strrep(varargin{i}, '\', '\\'))];
-    end
-end
-disp(cmd);
-[a,b] = system(cmd, '-echo');
 end
