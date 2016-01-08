@@ -739,10 +739,18 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
+    function assignment = check_node_is_assignment(node)
+        assignment = ~isempty(regexp(node.getValue, '\.', 'once'));
+    end
 
     function accept(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
+        
+        if ~check_node_is_assignment(node)
+            return;
+        end
+        
         node.setIcon(im2java(imread([images_dir, 'green.jpg'])));
         jtree.treeDidChange();
         
@@ -786,6 +794,11 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     function reject(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
+        
+        if ~check_node_is_assignment(node)
+            return;
+        end
+        
         node.setIcon(im2java(imread([images_dir, 'red.jpg'])));
         jtree.treeDidChange();
         
@@ -828,6 +841,11 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
     function maybe(~, ~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
+        
+        if ~check_node_is_assignment(node)
+            return;
+        end
+        
         node.setIcon(im2java(imread([images_dir, 'orange.jpg'])));
         jtree.treeDidChange();
         
@@ -1902,165 +1920,141 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
         
-        scan_curr = regexp(node.getValue,'\.','split');
-        scan_prev = regexp(prev_node,'\.','split');
+        scan_curr = regexp(node.getValue, '\.', 'split');
+        scan_prev = regexp(prev_node, '\.', 'split');
         
-        % New Node selected
-        if ~strcmp(node.getValue,prev_node)
-            print_code_now('');
-            set(handle_process_anyway,'Visible', 'off', 'Enable', 'off');
-            if ~isempty(regexp(node.getValue,'root')) || ~isempty(regexp(node.getValue,'protein'))
-                % Root or Protein node selected
-                set(handle1, 'Enable', 'off');
-                set(handle2, 'Enable', 'off');
-                set(handle3, 'Enable', 'off');
-                set(handle_RR, 'Enable', 'off'); % Turned selection for roots off
-                
-                % Clear all Plots
-                cla(ax1);
-                cla(ax1_assign);
-                cla(ax1_info);
-                cla(ax2);
-                if iTRAQType{2} > 0
-                    
-                    cla(ax3);
-                end
-                set(ax1, 'TickDir', 'out', 'box', 'off');
-                set(ax2, 'TickDir', 'out', 'box', 'off');
-                if iTRAQType{2} > 0
-                    set(ax3, 'TickDir', 'out', 'box', 'off');
-                end
-                %-------------------------------------------------------------------------%
-            elseif ~isempty(regexp(node.getValue,'\.'))
-                % Particular Peptide Assignment Selected
-                set(handle1, 'Enable', 'on');
-                set(handle2, 'Enable', 'on');
-                set(handle3, 'Enable', 'on');
-                set(handle_RR,'Enable','on');
-                
-                % Replot new scan and assignment
-                cla(ax1);
-                cla(ax1_assign);
-                cla(ax1_info);
-                cla(ax2);
-                if iTRAQType{2} > 0
-                    cla(ax3);
-                end
-                
-                if is_zoomed == 1
-                    % Find indicies of start and end of user selected zoom
-                    % window
-                    x1 = find(data{str2num(scan_curr{1})}.scan_data(:,1) > hold_zoom_start);
-                    x2 = find(data{str2num(scan_curr{1})}.scan_data(:,1) < hold_zoom_end);
-                    
-                    x_used = intersect(x1,x2);
-                    
-                    cla(ax1);
-                    cla(ax1_assign);
-                    cla(ax1_info);
-                    
-                    set(ax1, 'XLim', [hold_zoom_start, hold_zoom_end]);
-                    
-                    axes(ax1);
-                    set(gca, 'TickDir', 'out', 'box', 'off');
-                    stem(data{str2num(scan_curr{1})}.scan_data(x_used,1),data{str2num(scan_curr{1})}.scan_data(x_used,2),'Marker', 'none');
-                    
-                    axes(ax1_assign)
-                    display_ladder(str2num(scan_curr{1}),str2num(scan_curr{2}));
-                    plot_assignment(str2num(scan_curr{1}),str2num(scan_curr{2}));
-                    
-                    % Scale y-axis for zoomed window
-                    set(ax1, 'YLim', [0, 1.25*max(data{str2num(scan_curr{1})}.scan_data(x_used,2))]);
-                    
-                else
-                    axes(ax1)
-                    set(gca, 'TickDir', 'out', 'box', 'off');
-                    stem(data{str2num(scan_curr{1})}.scan_data(:,1),data{str2num(scan_curr{1})}.scan_data(:,2),'Marker', 'none');
-                end
-                
-                axes(ax1_assign)
-                display_ladder(str2num(scan_curr{1}),str2num(scan_curr{2}));
-                plot_assignment(str2num(scan_curr{1}),str2num(scan_curr{2}));
-                
-                axes(ax1_info)
-                text(0.01, 0.95, ['Scan Number: ', num2str(data{str2num(scan_curr{1})}.scan_number)]);
-                text(0.01, 0.90, ['MASCOT Score: ', num2str(round(data{str2num(scan_curr{1})}.pep_score))]);
-                
-                axes(ax2);
-                plot_prec(str2num(scan_curr{1}));
-                set(gca, 'TickDir', 'out', 'box', 'off');
-                text(.5,1.1,'Precursor', 'HorizontalAlignment', 'center');
-                
-                if iTRAQType{2} > 0
-                    axes(ax3);
-                    plot_iTRAQ(str2num(scan_curr{1}));
-                    set(gca, 'TickDir', 'out', 'box', 'off');
-                    text(.5,1.1,'iTRAQ', 'HorizontalAlignment', 'center');
-                end
-                
-                set(ax1, 'TickDir', 'out', 'box', 'off');
-                set(ax2, 'TickDir', 'out', 'box', 'off');
-                if iTRAQType{2} > 0
-                    set(ax3, 'TickDir', 'out', 'box', 'off');
-                end
-                
-                set(ax1, 'ButtonDownFcn', @zoom_MS2);
-                
-                %-------------------------------------------------------------------------%
-            else
-                % Scan Selected
-                set(handle1, 'Enable', 'off');
-                set(handle2, 'Enable', 'off');
-                set(handle3, 'Enable', 'off');
-                
-                cla(ax1);
-                cla(ax1_assign);
-                cla(ax1_info);
-                cla(ax2);
-                if iTRAQType{2} > 0
-                    cla(ax3);
-                end
-                
-                axes(ax1);
-                set(gca, 'TickDir', 'out', 'box', 'off');
-                stem(data{str2num(scan_curr{1})}.scan_data(:,1),data{str2num(scan_curr{1})}.scan_data(:,2), 'Marker', 'none');
-                ylim([0,1.25*max(data{str2num(scan_curr{1})}.scan_data(:,2))]);
-                
-                axes(ax1_info)
-                text(0.01, 0.95, ['Scan Number: ', num2str(data{str2num(scan_curr{1})}.scan_number)]);
-                text(0.01, 0.90, ['MASCOT Score: ', num2str(round(data{str2num(scan_curr{1})}.pep_score))]);
-                
-                axes(ax2);
-                plot_prec(str2num(scan_curr{1}));
-                set(gca, 'TickDir', 'out', 'box', 'off');
-                
-                if iTRAQType{2} > 0
-                    axes(ax3);
-                    plot_iTRAQ(str2num(scan_curr{1}));
-                    set(gca, 'TickDir', 'out', 'box', 'off');
-                end
-                
-                set(ax1, 'TickDir', 'out', 'box', 'off');
-                set(ax2, 'TickDir', 'out', 'box', 'off');
-                if iTRAQType{2} > 0
-                    set(ax3, 'TickDir', 'out', 'box', 'off');
-                end
-                
-                if isfield(data{str2num(scan_curr{1})},'code') && ~strcmp(data{str2num(scan_curr{1})},'No Possible Sequence')
-                    
-                    axes(ax1_assign);
-                    print_code_now(data{str2num(scan_curr{1})}.code);
-                    %%%%%%%%%%%%
-                    % Only allow the option to reprocess if no unsupported
-                    % modifications are found
-                    if isempty(regexp(data{str2num(scan_curr{1})}.code, 'Unsupported Modification')) && isempty(regexp(data{str2num(scan_curr{1})}.code, 'No Possible Sequence'))
-                        set(handle_process_anyway,'Enable','on','Visible','on');
-                    end
-                    %%%%%%%%%%%%
-                end
+        % Check if new node selected
+        if strcmp(node.getValue, prev_node)
+            return
+        end
+        
+        print_code_now('');
+        set(handle_process_anyway, 'Visible', 'off', 'Enable', 'off');
+        
+        function clear_plots()
+            % Clear all Plots
+            cla(ax1);
+            cla(ax1_assign);
+            cla(ax1_info);
+            cla(ax2);
+            
+            if iTRAQType{2} > 0
+                cla(ax3);
             end
-            prev_node = node.getValue; %workhere
-        end       
+        end
+        
+        function set_ticks()
+            set(ax1, 'TickDir', 'out', 'box', 'off');
+            set(ax2, 'TickDir', 'out', 'box', 'off');
+            
+            if iTRAQType{2} > 0
+                set(ax3, 'TickDir', 'out', 'box', 'off');
+            end
+        end
+        
+        function display_labels()
+            axes(ax1_info);
+            text(0.01, 0.95, ['Scan Number: ', num2str(data{str2num(scan_curr{1})}.scan_number)]);
+            text(0.01, 0.90, ['MASCOT Score: ', num2str(round(data{str2num(scan_curr{1})}.pep_score))]);
+
+            axes(ax2);
+            plot_prec(str2num(scan_curr{1}));
+            text(.5, 1.1, 'Precursor', 'HorizontalAlignment', 'center');
+
+            if iTRAQType{2} > 0
+                axes(ax3);
+                plot_iTRAQ(str2num(scan_curr{1}));
+                text(.5, 1.1, 'iTRAQ', 'HorizontalAlignment', 'center');
+            end
+        end
+        
+        if get(node, 'Root') || ~isempty(regexp(node.getValue, 'protein', 'once'))
+            % Root or Protein node selected
+            set(handle1, 'Enable', 'off');
+            set(handle2, 'Enable', 'off');
+            set(handle3, 'Enable', 'off');
+            set(handle_RR, 'Enable', 'off'); % Turned selection for roots off
+
+            clear_plots();
+            set_ticks();
+        elseif check_node_is_assignment(node)
+            % Particular Peptide Assignment Selected
+            set(handle1, 'Enable', 'on');
+            set(handle2, 'Enable', 'on');
+            set(handle3, 'Enable', 'on');
+            set(handle_RR, 'Enable', 'on');
+
+            % Replot new scan and assignment
+            clear_plots();
+
+            if is_zoomed == 1
+                % Find indicies of start and end of user selected zoom
+                % window
+                x1 = find(data{str2num(scan_curr{1})}.scan_data(:,1) > hold_zoom_start);
+                x2 = find(data{str2num(scan_curr{1})}.scan_data(:,1) < hold_zoom_end);
+
+                x_used = intersect(x1,x2);
+
+                % Find the X, Y data to be displayed
+                X = data{str2num(scan_curr{1})}.scan_data(x_used, 1);
+                Y = data{str2num(scan_curr{1})}.scan_data(x_used, 2);
+                
+                % Scale x-axis for zoomed window
+                set(ax1, 'XLim', [hold_zoom_start, hold_zoom_end]);
+            else
+                X = data{str2num(scan_curr{1})}.scan_data(:,1);
+                Y = data{str2num(scan_curr{1})}.scan_data(:,2);
+            end
+            
+            axes(ax1)
+            stem(X, Y, 'Marker', 'none');
+            ylim([0, 1.25 * max(Y)]);
+
+            axes(ax1_assign)
+            display_ladder(str2num(scan_curr{1}), str2num(scan_curr{2}));
+            plot_assignment(str2num(scan_curr{1}), str2num(scan_curr{2}));
+            
+            display_labels();
+
+            set(ax1, 'ButtonDownFcn', @zoom_MS2);
+            set_ticks();
+            %-------------------------------------------------------------------------%
+        else
+            % Scan Selected
+            set(handle1, 'Enable', 'off');
+            set(handle2, 'Enable', 'off');
+            set(handle3, 'Enable', 'off');
+
+            clear_plots();
+
+            X = data{str2num(scan_curr{1})}.scan_data(:, 1);
+            Y = data{str2num(scan_curr{1})}.scan_data(:, 2);
+            
+            axes(ax1);
+            stem(X, Y, 'Marker', 'none');
+            ylim([0, 1.25 * max(Y)]);
+
+            display_labels();
+            
+            if isfield(data{str2num(scan_curr{1})}, 'code') && ...
+                    ~strcmp(data{str2num(scan_curr{1})}, 'No Possible Sequence')
+                axes(ax1_assign);
+                print_code_now(data{str2num(scan_curr{1})}.code);
+                
+                %%%%%%%%%%%%
+                % Only allow the option to reprocess if no unsupported
+                % modifications are found
+                if isempty(regexp(data{str2num(scan_curr{1})}.code, 'Unsupported Modification', 'once')) && ...
+                        isempty(regexp(data{str2num(scan_curr{1})}.code, 'No Possible Sequence', 'once'))
+                    set(handle_process_anyway, 'Enable', 'on', 'Visible', 'on');
+                end
+                %%%%%%%%%%%%
+            end
+            
+            set_ticks();
+        end
+        
+        prev_node = node.getValue; %workhere
     end
 
 % Handle mouse click on peak label
@@ -3091,13 +3085,12 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         %         end
     end
 
-% Displays ladder on gui
-    function display_ladder(scan,id)
-        
-        [R,C] = size(data{scan}.fragments{id}.validated);
+    %%% Displays peptide ladder on gui
+    function display_ladder(scan, id)
+        % Get the size of the ladder
+        [rows, ~] = size(data{scan}.fragments{id}.validated);
         
         seq = data{scan}.fragments{id}.seq;
-        
         
         b_names_keep = {};
         y_names_keep = {};
@@ -3105,44 +3098,46 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         b_names_keep{length(seq)} = {};
         y_names_keep{length(seq)} = {};
         
-        %         b_ions = data{scan}.fragments{id}.b_ions;
-        %         y_ions = data{scan}.fragments{id}.y_ions;
+        % b_ions = data{scan}.fragments{id}.b_ions;
+        % y_ions = data{scan}.fragments{id}.y_ions;
         
-        b_used = zeros(length(seq),1);
-        y_used = zeros(length(seq),1);
+        b_used = zeros(length(seq), 1);
+        y_used = zeros(length(seq), 1);
         
-        for r = 1:R
-            if ~isempty(data{scan}.fragments{id}.validated{r,2})
-                if ~isempty(regexp(data{scan}.fragments{id}.validated{r,2},'a_{')) || ~isempty(regexp(data{scan}.fragments{id}.validated{r,2},'b_{'))
-                    %                 if strcmp(data{scan}.fragments{id}.validated{r,2}(1),'a') || strcmp(data{scan}.fragments{id}.validated{r,2}(1),'b')
-                    [~, ~,~,d] = regexp(data{scan}.fragments{id}.validated{r,2},'[0-9]*');
-                    b_used(str2num(d{1})) = 1;
-                    b_names_keep{str2num(d{1})}{end+1} = data{scan}.fragments{id}.validated{r,2};
-                elseif ~isempty(regexp(data{scan}.fragments{id}.validated{r,2},'y_{'))
-                    %                 elseif strcmp(data{scan}.fragments{id}.validated{r,2}(1),'y_')
-                    [~,~,~,d] = regexp(data{scan}.fragments{id}.validated{r,2},'[0-9]*');
-                    y_used(str2num(d{1})) = 1;
-                    y_names_keep{str2num(d{1})}{end+1} = data{scan}.fragments{id}.validated{r,2};
+        for r = 1:rows
+            if ~isempty(data{scan}.fragments{id}.validated{r, 2})
+                if ~isempty(regexp(data{scan}.fragments{id}.validated{r, 2}, '[a-c]_{', 'once'))
+                    matches = regexp(data{scan}.fragments{id}.validated{r, 2}, '[0-9]*', 'match');
+                    match_num = str2num(matches{1});
+                    
+                    b_used(match_num) = 1;
+                    b_names_keep{match_num}{end + 1} = data{scan}.fragments{id}.validated{r, 2};
+                elseif ~isempty(regexp(data{scan}.fragments{id}.validated{r, 2}, '[x-z]_{', 'once'))
+                    matches = regexp(data{scan}.fragments{id}.validated{r, 2}, '[0-9]*', 'match');
+                    match_num = str2num(matches{1});
+                    
+                    y_used(match_num) = 1;
+                    y_names_keep{match_num}{end + 1} = data{scan}.fragments{id}.validated{r, 2};
                 end
             end
         end
         
-        
         x_start = 0;
         y_start = 475;
         
-        num_font_size = 5;
+        % num_font_size = 5;
         
-        %         space_x = 20;
+        % space_x = 20;
         space_x = 10;
-        %         space_y = 20;
+        % space_y = 20;
         
-        %       text(x_start, y_start + space_y, num2str(b_ions(1)), 'Units', 'pixels', 'HorizontalAlignment', 'Center', 'FontSize', num_font_size);
+        % text(x_start, y_start + space_y, num2str(b_ions(1)), 'Units', 'pixels', 'HorizontalAlignment', 'Center', 'FontSize', num_font_size);
         text(x_start, y_start, seq(1), 'Units', 'pixels', 'HorizontalAlignment', 'Center')
         
         prev = x_start;
         
         for i = 2:length(seq)
+            % Draw ladders between sequence letters
             if b_used(i-1) == 1 && y_used(end-i+1) == 1
                 text(prev + space_x, y_start, '\color{red}^{ \rceil}_{ \lfloor}', ...
                     'Units', 'pixels', ...
@@ -3171,13 +3166,17 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
             %             if i < length(seq)
             %                 text(prev + 2*space_x, y_start + space_y, num2str(b_ions(i)), 'Units', 'pixels', 'HorizontalAlignment', 'Center', 'FontSize', num_font_size);
             %             end
-            text(prev + 2.25*space_x, y_start, seq(i), 'Units', 'pixels', 'HorizontalAlignment', 'Center');
+            text( ...
+                prev + 2.25 * space_x, y_start, seq(i), ...
+                'Units', 'pixels', ...
+                'HorizontalAlignment', 'Center' ...
+            );
             %             text(prev + 2*space_x, y_start - space_y, num2str(y_ions(end-i+1)), 'Units', 'pixels', 'HorizontalAlignment', 'Center', 'FontSize', num_font_size);
-            prev = prev + 2*space_x;
+            prev = prev + 2 * space_x;
         end
     end
 
-% Plot table of fragments used to confirm sequence positions
+    %%% Plot table of fragments used to confirm sequence positions
     function show_used_ions(~, ~,b_pos, y_pos)
         h2 = figure('pos',[300,300,500,250], 'WindowStyle', 'modal');
         set(gcf,'name','Show Used Fragments','numbertitle','off', 'MenuBar', 'none');
@@ -3198,114 +3197,156 @@ text(10,335,'HCD Tol.(ppm)', 'Units', 'pixels', 'Interpreter', 'none');
         end
     end
 
-% Plot fragment label assignments onto active axes - ****
-    function plot_assignment(scan,id,x_start,x_end)
+    %%% Plot fragment label assignments onto active axes
+    function plot_assignment(scan, id, x_start, x_end)
         
         hold on;
-        plot_isotope = [];
-        plot_good = [];
-        plot_med = [];
-        plot_miss = [];
-        plot_uk = [];
         
-        plot_bt = [];       % Below threshold
+        % Finds m/z range, sets window +/- 5%
+        valid = data{scan}.fragments{id}.validated;
+        valid_x = cell2mat(valid(:, 1));
         
-        % FINDS MAXIMUM INTENSITY -DR
-        max_y = 0;
-        for i = 1:length(data{scan}.fragments{id}.validated(:,4))
-            if max_y < data{scan}.fragments{id}.validated{i,4}
-                max_y = data{scan}.fragments{id}.validated{i,4};
-            end
+        if ~exist('x_start', 'var')
+            x_start = 0.95 * valid_x(1);
+        end
+        if ~exist('x_end', 'var')
+            x_end = 1.05 * valid_x(end);
         end
         
-        % FINDS NUMBER OF ID'd PEAKS
-        [num_id_peaks_max, ~] = size(data{scan}.fragments{id}.validated);
+        % Only select peaks within our m/z window
+        x_range = [x_start, x_end];
+        valid = valid(valid_x > x_range(1) & valid_x < x_range(2), :);
+        valid_x = cell2mat(valid(:, 1))';
+        valid_y = cell2mat(valid(:, 4))';
         
-        % FINDS M/Z RANGE, SETS WINDOW +/- 5%
-        if ~exist('x_start')
-            x_start = 0.95 * data{scan}.fragments{id}.validated{1,1};
-        end
-        if ~exist('x_end')
-            x_end = 1.05 * data{scan}.fragments{id}.validated{end,1};
-        end
+        % Find the maximum intensity
+        max_y = max(valid_y);
         
-        x_range = [x_start,x_end];
+        % Find the number of peaks
+        [num_id_peaks_max, ~] = size(valid);
         
+        % Make an array of enum elements to assign each scan to a given
+        % category
+        assignments = zeros(num_id_peaks_max, 1);
+        assignments(:) = PeakType.unassigned;
+        
+        % Process all of the peaks, build a list of misses,
+        % below threshold, unknown, isotopes, etc.
         for num_id_peaks = 1:num_id_peaks_max
+            % Get m/z of current peak
+            x = valid{num_id_peaks, 1};
             
-            x = data{scan}.fragments{id}.validated{num_id_peaks,1}; % gets m/z of current peak
-            if x > x_range(1) && x < x_range(2) % checks that mass is in range
-                y = data{scan}.fragments{id}.validated{num_id_peaks,4}; % gets intensity of current peak
-                name = data{scan}.fragments{id}.validated{num_id_peaks,2}; % gets assignment of current peak
+            % Get intensity and name of current peak
+            y = valid{num_id_peaks, 4};
+            name = valid{num_id_peaks, 2};
+            
+            % Check for unassigned peaks
+            if isempty(name)
+                if y / max_y > 0.1
+                    assignments(num_id_peaks) = PeakType.missed;
+                else
+                    assignments(num_id_peaks) = PeakType.below_threshold;
+                end
                 
-                if ~isempty(name) % if peak assigned
-                    if strfind(name, 'isotope') % CHANGED TO ACCOUNT FOR NAMES IN ISOTOPES 10/26/2015
-                        plot_isotope(end+1,:) = [x y];
-                    elseif strcmp(data{scan}.fragments{id}.validated{num_id_peaks,3},'unknown')
-                        plot_uk(end+1,:) = [x,y];
-                        text(x,y,[' ', name],'FontSize', 8, 'Rotation', 90, 'ButtonDownFcn', @labelCallback);
+                continue
+            end
+            
+            % CHANGED TO ACCOUNT FOR NAMES IN ISOTOPES 10/26/2015
+            if strfind(name, 'isotope')
+                assignments(num_id_peaks) = PeakType.isotope;
+                continue
+            end
+            
+            if strcmp(valid{num_id_peaks, 3}, 'unknown')
+                assignments(num_id_peaks) = PeakType.unknown;
+            else
+                % Check the colision type and the mass accuracy
+                if isfield(data{scan}, 'scan_type')
+                    if (strcmp(data{scan}.scan_type, 'CID') && valid{num_id_peaks, 5} < CID_tol) || ...
+                            (strcmp(data{scan}.scan_type, 'HCD') && valid{num_id_peaks, 5} < HCD_tol)
+                        assignments(num_id_peaks) = PeakType.good;
                     else
-                        if isfield(data{scan}, 'scan_type')
-                            if (strcmp(data{scan}.scan_type, 'CID') && data{scan}.fragments{id}.validated{num_id_peaks,5} < CID_tol) || ...
-                                    (strcmp(data{scan}.scan_type, 'HCD') && data{scan}.fragments{id}.validated{num_id_peaks,5} < HCD_tol)
-                                plot_good(end+1,:) = [x y];
-                            else
-                                plot_med(end+1,:) = [x y];
-                            end
-                        else
-                            if data{scan}.fragments{id}.validated{num_id_peaks,5} < CID_tol
-                                plot_good(end+1,:) = [x y];
-                            else
-                                plot_med(end+1,:) = [x y];
-                            end
-                        end
-                        text(x,y,[' ', name],'FontSize', 8, 'Rotation', 90, 'ButtonDownFcn', @labelCallback);
+                        assignments(num_id_peaks) = PeakType.med;
                     end
                 else
-                    if y/max_y > 0.1
-                        plot_miss(end+1, :) = [x y];
+                    if valid{num_id_peaks, 5} < CID_tol
+                        assignments(num_id_peaks) = PeakType.good;
                     else
-                        plot_bt(end+1,:) = [x,y];
+                        assignments(num_id_peaks) = PeakType.med;
                     end
                 end
             end
+            text( ...
+                x, y, ['  ', name], ...
+                'FontSize', 8, ...
+                'Rotation', 90, ...
+                'ButtonDownFcn', @labelCallback ...
+            );
         end
+        
+        plot_good = [ ...
+            valid_x(assignments == PeakType.good); ...
+            valid_y(assignments == PeakType.good) ...
+        ];
+        plot_med = [ ...
+            valid_x(assignments == PeakType.med); ...
+            valid_y(assignments == PeakType.med) ...
+        ];
+        plot_isotope = [ ...
+            valid_x(assignments == PeakType.isotope); ...
+            valid_y(assignments == PeakType.isotope) ...
+        ];
+        plot_miss = [ ...
+            valid_x(assignments == PeakType.missed); ...
+            valid_y(assignments == PeakType.missed) ...
+        ];
+        plot_uk = [ ...
+            valid_x(assignments == PeakType.unknown); ...
+            valid_y(assignments == PeakType.unknown) ...
+        ];
+        plot_bt = [ ...
+            valid_x(assignments == PeakType.below_threshold); ...
+            valid_y(assignments == PeakType.below_threshold) ...
+        ];
         
         if ~isempty(plot_good)
-            plot(plot_good(:,1), plot_good(:,2), '*g');
+            plot(plot_good(1, :), plot_good(2, :), '*g');
         end
+        
         if ~isempty(plot_med)
-            plot(plot_med(:,1), plot_med(:,2), '*m');
+            plot(plot_med(1, :), plot_med(2, :), '*m');
         end
-        if ~isempty(plot_isotope)
-            %             plot(plot_isotope(:,1), plot_isotope(:,2), '*y');
-            [r,~] = size(plot_isotope);
-            for i = 1:r
-                plot(plot_isotope(i,1), plot_isotope(i,2), '*y', 'ButtonDownFcn', @name_unlabeled);
-            end
-        end
+        
         if ~isempty(plot_uk)
-            plot(plot_uk(:,1), plot_uk(:,2), '*k');
-        end
-        if ~isempty(plot_miss)
-            [r,~] = size(plot_miss);
-            for i = 1:r
-                plot(plot_miss(i,1), plot_miss(i,2), 'or', 'ButtonDownFcn', @name_unlabeled);
-            end
+            plot(plot_uk(1, :), plot_uk(2, :), '*k');
         end
         
-        if ~isempty(plot_bt)
-            [r,~] = size(plot_bt);
-            for i = 1:r
-                plot(plot_bt(i,1), plot_bt(i,2), 'b.', 'ButtonDownFcn', @name_unlabeled);
-            end
+        for i = 1:size(plot_isotope, 2)
+            plot( ...
+                plot_isotope(1, i), plot_isotope(2, i), '*y', ...
+                'ButtonDownFcn', @name_unlabeled ...
+            );
         end
         
-        ylim([0, 1.25*max_y]);
+        for i = 1:size(plot_miss, 2)
+            plot( ...
+                plot_miss(1, i), plot_miss(2, i), 'or', ...
+                'ButtonDownFcn', @name_unlabeled ...
+            );
+        end
+        
+        for i = 1:size(plot_bt, 2)
+            plot( ...
+                plot_bt(1, i), plot_bt(2, i), 'b.', ...
+                'ButtonDownFcn', @name_unlabeled ...
+            );
+        end
+        
+        ylim([0, 1.25 * max_y]);
         hold off;
     end
 
-% Name a peak
+    %%% Name a peak
     function name_unlabeled(a,~)
         nodes = mtree.getSelectedNodes;
         node = nodes(1);
