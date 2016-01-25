@@ -350,11 +350,11 @@ end
         
         % Otherwise just search that folder for any occurance of files
         % with those names.
-        if ~exists(msconvert_full_path, 'file')
+        if ~exist(msconvert_full_path, 'file')
             [~, msconvert_full_path] = docs(['dir /s/b ', base_dir, '\*msconvert.exe']);
         end
 
-        if ~exists(images_dir, 'dir')
+        if ~exist(images_dir, 'dir')
             [~, images_dir] = docs(['dir /s/b ', base_dir, '\*images']);
             images_dir = [images_dir, '\'];
         end
