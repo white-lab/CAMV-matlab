@@ -1,19 +1,17 @@
 
-function spectrum_validation()
+function spectrum_validation(varargin)
 clc
 close all
 
-import javax.swing.*
+import javax.swing.*;
 import javax.swing.tree.*;
 
+global base_dir;
 global RAW_filename;
 global RAW_path;
-global RAW_path_ns;
 global XML_filename;
 global XML_path;
-global XML_path_ns;
 global OUT_path;
-global OUT_path_ns;
 global filename;
 global SL_path;
 global SL_filename;
@@ -91,9 +89,141 @@ global handle_HCD_tol;
 global handle_HCD_text;
 global handle_msconvert;
 
+
+    %% Split a full file path into its filename and directory paths
+    function [filename, path] = split_path(full_path)
+        if ~full_path
+            filename = '';
+            path = '';
+        else
+            [path, filename, ext] = fileparts(full_path);
+            filename = [filename, ext];
+            path = [path '\'];
+        end
+    end
+
+    %%% Handle any command line arguments
+    %%% Note that all file paths must be absolute.
+    function success = handle_arguments()
+        success = true;
+        
+        p = inputParser;
+        addParameter(p, 'raw_path', '');
+        addParameter(p, 'xml_path', '');
+        addParameter(p, 'out_path', '');
+        addParameter(p, 'sl_path', '');
+        addParameter(p, 'session_path', '');
+        addParameter(p, 'import', false);
+        addParameter(p, 'load', false);
+        addParameter(p, 'save', false);
+        addParameter(p, 'export', false);
+        addParameter(p, 'spectra', false);
+        addParameter(p, 'exit', false);
+        
+        parse(p, varargin{:});
+        inputs = p.Results;
+        
+        if ischar(inputs.import)
+            inputs.import = strcmp(inputs.import, 'true');
+        end
+        if ischar(inputs.load)
+            inputs.load = strcmp(inputs.load, 'true');
+        end
+        if ischar(inputs.save)
+            inputs.save = strcmp(inputs.save, 'true');
+        end
+        if ischar(inputs.export)
+            inputs.export = strcmp(inputs.export, 'true');
+        end
+        if ischar(inputs.spectra)
+            inputs.spectra = strcmp(inputs.spectra, 'true');
+        end
+        if ischar(inputs.exit)
+            inputs.exit = strcmp(inputs.exit, 'true');
+        end
+
+        if inputs.import
+            if isempty(inputs.raw_path)
+                msgbox('No raw path specified.', 'Warning');
+                success = false;
+                return;
+            end
+            if isempty(inputs.xml_path)
+                msgbox('No xml path specified.', 'Warning');
+                success = false;
+                return;
+            end
+            if isempty(inputs.out_path)
+                msgbox('No output path specified.', 'Warning');
+                success = false;
+                return;
+            end
+            
+            [RAW_filename, RAW_path] = split_path(inputs.raw_path);
+            [XML_filename, XML_path] = split_path(inputs.xml_path);
+            OUT_path = inputs.out_path;
+            [SL_filename, SL_path] = split_path(inputs.sl_path);
+            
+            process;
+        end
+
+        if inputs.load
+            if isempty(inputs.session_path)
+                msgbox('No session path', 'Warning');
+                success = false;
+                return;
+            end
+            
+            [LOAD_filename, LOAD_path] = split_path(inputs.session_path);
+            run_load_session(LOAD_filename, LOAD_path);
+        end
+
+        if inputs.save
+            if isempty(inputs.session_path)
+                msgbox('No session path', 'Warning');
+                success = false;
+                return;
+            end
+            
+            if isempty(data)
+                msgbox('No data imported or loaded');
+                success = false;
+                return;
+            end
+            
+            [SAVE_filename, SAVE_path] = split_path(inputs.session_path);
+            run_save_session(SAVE_filename, SAVE_path);
+        end
+
+        if inputs.export
+            if isempty(data)
+                msgbox('No data imported or loaded', 'Warning');
+                success = false;
+                return;
+            end
+            
+            if inputs.spectra
+                set(handle_spectra_accept, 'Value', true);
+                set(handle_spectra_maybe, 'Value', true);
+                set(handle_spectra_reject, 'Value', true);
+            end
+            
+            export;
+        end
+        
+        if inputs.exit
+            exit;
+        end
+    end
+
 init_globals;
 load_settings;
 init_gui;
+
+if ~handle_arguments
+    close(gcf);
+    return
+end
 
     function init_channels()
         iTRAQType = {};
@@ -195,20 +325,40 @@ init_gui;
     function init_globals()
         RAW_filename = '';
         RAW_path = '';
-        RAW_path_ns = '';
         XML_filename = '';
         XML_path = '';
-        XML_path_ns = '';
         OUT_path = '';
-        OUT_path_ns = '';
         filename = '';
         SL_path = '';
         SL_filename = '';
 
-        % msconvert_full_path = 'C:\Users\Tim\Desktop\Lab\Data\Code\SpectrumValidation\MATLAB_GUI\New\ProteoWizard\"ProteoWizard 3.0.4323"\msconvert';
-        msconvert_full_path = 'ProteoWizard\ProteoWizard 3.0.9205\msconvert';
-        images_dir = [fileparts(fileparts(mfilename('fullpath'))), '\images\'];
+        % Set a base path from which we expect to find the utility files
+        base_dir = fileparts(fileparts(mfilename('fullpath')));
+        rel_path = '';
+        
+        % If this is deployed as "CAMV.exe", this path is a folder
+        % in the user's temporary directory, in a subfolder that was the
+        % path to those files when the project was compiled.
+        if isdeployed
+            base_dir = ctfroot;
+            rel_path = '\Users\Nader\Dropbox (MIT)\CAMV_Share';
+        end
+        
+        % String these together to find msconvert.exe and images
+        msconvert_full_path = [base_dir, rel_path, '\ProteoWizard\ProteoWizard 3.0.9205\msconvert.exe'];
+        images_dir = [base_dir, rel_path, '\images\'];
+        
+        % Otherwise just search that folder for any occurance of files
+        % with those names.
+        if ~exists(msconvert_full_path, 'file')
+            [~, msconvert_full_path] = docs(['dir /s/b ', base_dir, '\*msconvert.exe']);
+        end
 
+        if ~exists(images_dir, 'dir')
+            [~, images_dir] = docs(['dir /s/b ', base_dir, '\*images']);
+            images_dir = [images_dir, '\'];
+        end
+        
         data = {};
         mtree = 0;
         jtree = 0;
@@ -1230,12 +1380,7 @@ init_gui;
                 end
                 
                 if isempty(lst)
-                    warndlg(...
-                        ['No peptide identifications have been selected in ', ...
-                         lst_type, ...
-                         ' list.'], ...
-                        'Empty List'...
-                    );
+                    continue
                 end
                 
                 write_list(lst, path);
@@ -1374,6 +1519,10 @@ init_gui;
     function batch_process(~, ~)
         
         [names, path] = uigetfile({'*.raw','RAW Files'}, 'MultiSelect', 'on');
+
+        if isequal(names, 0)
+            return;
+        end
         
         %       if ~isempty(regexp(path, ' '))
         %           msgbox('Please choose a RAW file path without spaces.','Warning');
@@ -1387,42 +1536,47 @@ init_gui;
             
             if ~exist([path, filename, '.xml'], 'file')
                 msgbox(['File not found: ',path,filename,'.xml'])
-            else
-                filename = names;
-                filename = regexprep(filename,'.RAW','');
-                filename = regexprep(filename,'.raw','');
-                filename = regexprep(filename,'.xml','');
-                
-                RAW_path = path;
-                RAW_filename = [filename, '.RAW'];
-                XML_path = path;
-                XML_filename = [filename, '.XML'];
-                SL_path = path;
-                SL_filename = [filename,'.xls'];
-                SAVE_path = path;
-                SAVE_filename = [filename, '.mat'];
-                
-                try
-                    validate_spectra();
-                catch err
-                    print_code_now(['Error validating spectra: ', err.identifier, '. Please reset.'])
-                    set(handle_reset,'Enable','on');
-                end
-                
-                
-                if ~isemtpy(data)
-                    print_now(['Saving...', filename]);
-                    %                     save([path, filename,'.mat'],'data', 'iTRAQType', 'iTRAQ_masses','SILAC','SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window');
-                    save([SAVE_path, SAVE_filename],'data', 'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window','HCD_tol', 'CID_tol', 'OUT_path');
-                    print_now('');
-                end
-                
-                data = {};
-                init_channels;
+                return;
             end
+            
+            filename = names;
+            filename = regexprep(filename,'.RAW','');
+            filename = regexprep(filename,'.raw','');
+            filename = regexprep(filename,'.xml','');
+
+            RAW_path = path;
+            RAW_filename = [filename, '.RAW'];
+            XML_path = path;
+            XML_filename = [filename, '.XML'];
+            SL_path = path;
+            SL_filename = [filename,'.xls'];
+            SAVE_path = path;
+            SAVE_filename = [filename, '.mat'];
+
+            try
+                validate_spectra();
+            catch err
+                print_code_now(['Error validating spectra: ', err.identifier, '. Please reset.'])
+                set(handle_reset,'Enable','on');
+            end
+
+
+            if ~isemtpy(data)
+                print_now(['Saving...', filename]);
+                %                     save([path, filename,'.mat'],'data', 'iTRAQType', 'iTRAQ_masses','SILAC','SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window');
+                save( ...
+                    [SAVE_path, SAVE_filename], ...
+                    'data', 'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6', 'SILAC_R10', 'SILAC_K6', 'SILAC_K8', ...
+                    'cont_thresh', 'cont_window', 'HCD_tol', 'CID_tol', 'OUT_path', ...
+                    '-v7' ...
+                );
+                print_now('');
+            end
+
+            data = {};
+            init_channels;
         else
             % Multiple RAW files selected
-            
             files_not_found = {};
             for i = 1:length(names)
                 filename = names{i};
@@ -1454,8 +1608,10 @@ init_gui;
                     XML_filename = [filename, '.XML'];
                     SL_path = path;
                     SL_filename = [filename,'.xls'];
+                    
                     SAVE_path = path;
                     SAVE_filename = [filename, '.mat'];
+                    
                     if ~isempty(data)
                         try
                             validate_spectra();
@@ -1467,7 +1623,12 @@ init_gui;
                     end
                     %%%%%% Check Saved Parameters %%%%%%%%%%%%%%%%%
                     % Need to collect and include outpath similar to
-                    save([SAVE_path, SAVE_filename],'data', 'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window','HCD_tol', 'CID_tol', 'OUT_path');
+                    save( ...
+                        [SAVE_path, SAVE_filename], ...
+                        'data', 'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6', 'SILAC_R10', 'SILAC_K6', 'SILAC_K8', ...
+                        'cont_thresh', 'cont_window', 'HCD_tol', 'CID_tol', 'OUT_path', ...
+                        '-v7' ...
+                    );
                     
                     %                         save([path, filename,'.mat'],'data', 'iTRAQType', 'iTRAQ_masses','SILAC','SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window');
                     
@@ -1570,8 +1731,8 @@ init_gui;
         uicontrol( ...
             'Style', 'pushbutton', ...
             'Position', [300, 33, 100, 20], ...
-            'String', 'Process', ...
-            'Callback', @process ...
+            'String', 'Proces', ...
+            'Callback', @call_process ...
         );
         
         function select_RAW(~, ~)
@@ -1592,84 +1753,61 @@ init_gui;
         
         function select_SL(~, ~)
             [SL_filename, SL_path] = uigetfile([RAW_path, '\*.xls;*.xlsx'], 'Excel Files (.xls, .xlsx)');
-            SL_filename = strrep(SL_filename, ' ', '\\ ');
-            SL_path = strrep(SL_path, ' ', '\\ ');
             set(handle_SL, 'String', [SL_path, SL_filename]);
         end
         
-        function process(~, ~)
-            
+        function call_process(~, ~)
             if isempty(RAW_filename)
-                msgbox('No RAW file selected','Warning');
-            elseif isempty(XML_filename)
-                msgbox('No XML file selected','Warning');
-            elseif isempty(OUT_path)
-                msgbox('No output directory selected','Warning');
-            else
-                %             RAW_path_ns = scrub_spaces(RAW_path);
-                %             XML_path_ns = scrub_spaces(XML_path);
-                %             OUT_path_ns = scrub_spaces(OUT_path);
-                
-                close(h2);
-                set(handle_file,'Enable', 'off');
-                set(handle_file_continue,'Enable', 'off');
-                
-                filename = regexprep(RAW_filename,'.RAW','');
-                filename = regexprep(filename,'.raw','');
-                filename = regexprep(filename,'.xml','');
-                filename = regexprep(filename,'.baf',''); % to support .baf files
-                
-                CID_tol = str2double(get(handle_CID_tol, 'String'))/1e6;
-                HCD_tol = str2double(get(handle_HCD_tol, 'String'))/1e6;
-                
-                try
-                    validate_spectra();
-                catch err
-                    print_code_now(['Error validating spectra: ', err.identifier, '. Please reset.'])
-                    set(handle_reset,'Enable','on');
-                end
-                if ~isempty(data)
-                    [mtree,jtree] = build_tree(filename, data);
-                    set(handle1, 'Enable', 'off');
-                    set(handle2, 'Enable', 'off');
-                    set(handle3, 'Enable', 'off');
-                    set(handle_export, 'Enable', 'on');
-                    set(handle_file_save,'Enable', 'on');
-                    set(handle_reset,'Enable','on');
-                    set(handle_search, 'Visible', 'on', 'Enable', 'on');
-                    % set(handle_transfer, 'Visible', 'on', 'Enable', 'on');
-                    
-                    hide_load_settings;
-                end
+                msgbox('No RAW file selected', 'Warning');
+                return;
             end
-            %         toc;
-        end
-        
-        function out = scrub_spaces(str)
-            prev = 0;
-            a = regexp(str,'\\');
-            
-            keep_name = {};
-            
-            prev = 0;
-            for i = 1:length(a)
-                keep_name{i} = str(prev+1:a(i) - 1);
-                prev = a(i);
+            if isempty(XML_filename)
+                msgbox('No XML file selected', 'Warning');
+                return;
             end
-            
-            for i = 1:length(keep_name)
-                if ~isempty(regexp(keep_name{i},' '))
-                    keep_name{i} = ['"', keep_name{i}, '"'] ;
-                end
+            if isempty(OUT_path)
+                msgbox('No output directory selected', 'Warning');
+                return;
             end
-            
-            out = [];
-            for i = 1:length(keep_name)
-                out = [out, keep_name{i}, '\'];
-            end
+
+            close(h2);
+            process;
         end
     end
+    
+    function process(~, ~)
+        set(handle_file, 'Enable', 'off');
+        set(handle_file_continue, 'Enable', 'off');
 
+        filename = regexprep(RAW_filename, '.RAW', '');
+        filename = regexprep(filename, '.raw', '');
+        filename = regexprep(filename, '.xml', '');
+        filename = regexprep(filename, '.baf', ''); % to support .baf files
+
+        CID_tol = str2double(get(handle_CID_tol, 'String')) / 1e6;
+        HCD_tol = str2double(get(handle_HCD_tol, 'String')) / 1e6;
+
+        try
+            validate_spectra();
+        catch err
+            print_code_now(['Error validating spectra: ', err.identifier, '. Please reset.'])
+            set(handle_reset,'Enable', 'on');
+        end
+        if ~isempty(data)
+            [mtree,jtree] = build_tree(filename, data);
+            set(handle1, 'Enable', 'off');
+            set(handle2, 'Enable', 'off');
+            set(handle3, 'Enable', 'off');
+            set(handle_export, 'Enable', 'on');
+            set(handle_file_save,'Enable', 'on');
+            set(handle_reset, 'Enable', 'on');
+            set(handle_search, 'Visible', 'on', 'Enable', 'on');
+            % set(handle_transfer, 'Visible', 'on', 'Enable', 'on');
+
+            hide_load_settings;
+        end
+    end
+        
     function labels = detect_labels_from_masses(masses)
         switch length(masses)
             case 4
@@ -1710,7 +1848,10 @@ init_gui;
     %%% Load Session
     function load_session(~, ~)
         [LOAD_filename, LOAD_path] = uigetfile({'*.mat','MAT Files'});
-        
+        run_load_session(LOAD_filename, LOAD_path);
+    end
+
+    function run_load_session(LOAD_filename, LOAD_path)
         if exist([LOAD_path, '\', LOAD_filename], 'file')
             print_now('Loading...');
             set(handle_file,'Enable', 'off');
@@ -1831,8 +1972,18 @@ init_gui;
     %%% Save Session
     function save_session(~, ~)
         [SAVE_filename, SAVE_path] = uiputfile({'*.mat','MAT Files'},'Save Session As',[filename,'.mat']);
+        run_save_session(SAVE_filename, SAVE_path);
+    end
+
+    function run_save_session(SAVE_filename, SAVE_path)
         print_now('Saving...');
-        save([SAVE_path, SAVE_filename], 'data', 'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window','HCD_tol', 'CID_tol', 'OUT_path','-v7');
+        save( ...
+            [SAVE_path, SAVE_filename], ...
+            'data', ...
+            'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6', 'SILAC_R10', 'SILAC_K6', 'SILAC_K8', ...
+            'cont_thresh', 'cont_window', 'HCD_tol', 'CID_tol', 'OUT_path', ...
+            '-v7' ...
+        );
         print_now('');
     end
 
@@ -1888,7 +2039,7 @@ init_gui;
                 names = {};
                 prev_name = '';
                 for i = 1:length(data)
-                    if ~isempty(regexp(data{i}.protein,prot_name)) && ~strcmp(data{i}.protein,prev_name)
+                    if ~isempty(regexp(data{i}.protein, prot_name, 'once')) && ~strcmp(data{i}.protein, prev_name)
                         names{end+1} = data{i}.protein;
                         prev_name = data{i}.protein;
                     end
@@ -2020,7 +2171,7 @@ init_gui;
             
             trans_filename = regexprep(trans_filename,'.mat','');
             new_data = data;
-            temp = load(['input\',trans_filename,'.mat']);
+            temp = load(['input\', trans_filename, '.mat']);
             if (temp.iTRAQType{2} == iTRAQType{2}) && (SILAC_R6 == temp.SILAC_R6) && (SILAC_R10 == temp.SILAC_R10) && (SILAC_K6 == temp.SILAC_K6) && (SILAC_K8 == temp.SILAC_K8)
                 if length(new_data) == length(temp.data)
                     print_now('Tranferring...');

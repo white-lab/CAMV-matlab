@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="1563865905" file="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV.prj" location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share" name="CAMV" preferred-package-location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
+  <configuration build-checksum="1974523882" file="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV.prj" location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share" name="CAMV" preferred-package-location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
     <param.appname>CAMV</param.appname>
     <param.icon>${PROJECT_ROOT}\CAMV_resources\icon.ico</param.icon>
     <param.icons>
@@ -75,7 +75,21 @@
       <file>${PROJECT_ROOT}\ProteoWizard</file>
     </fileset.resources>
     <fileset.package />
-    <fileset.depfun />
+    <fileset.depfun>
+      <file>${MATLAB_ROOT}\toolbox\local\userpath.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\compare_spectra4.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\exact_mass.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\exact_mass2.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\fragment_masses2_diox.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\gen_possible_seq2_diox.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\init_fragments_TMT_diox.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\internal_fragments_diox.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\msconverttxtread.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\mzxmlread2.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\PeakType.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\read_mascot_xml2_baf.m</file>
+      <file>${PROJECT_ROOT}\Matlab Code\systemsafe.m</file>
+    </fileset.depfun>
     <build-deliverables>
       <file location="${PROJECT_ROOT}\CAMV\for_testing" name="CAMV.exe" optional="false">C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV\for_testing\CAMV.exe</file>
       <file location="${PROJECT_ROOT}\CAMV\for_testing" name="splash.png" optional="false">C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV\for_testing\splash.png</file>
