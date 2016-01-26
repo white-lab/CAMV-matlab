@@ -349,7 +349,7 @@ end
         % path to those files when the project was compiled.
         if isdeployed
             base_dir = ctfroot;
-            rel_path = '\Users\Nader\Dropbox (MIT)\White Lab\CAMV';
+            % rel_path = '\Users\Nader\Dropbox (MIT)\White Lab\CAMV';
         end
         
         % String these together to find msconvert.exe and images
