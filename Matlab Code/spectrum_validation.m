@@ -359,12 +359,15 @@ end
         % Otherwise just search that folder for any occurance of files
         % with those names.
         if ~exist(msconvert_full_path, 'file')
-            [~, msconvert_full_path] = systemsafe('dir', '/s/b', [base_dir, '\*msconvert.exe']);
+            % Use system, not systemsafe. dir has issues with escaping
+            % backslashes.
+            [~, msconvert_full_path] = system(['dir /s/b ', base_dir, '\*msconvert.exe']);
+            msconvert_full_path = strtrim(msconvert_full_path);
         end
 
         if ~exist(images_dir, 'dir')
-            [~, images_dir] = systemsafe('dir', '/s/b', [base_dir, '\*images']);
-            images_dir = [images_dir, '\'];
+            [~, images_dir] = system(['dir /s/b ', base_dir, '\*images']);
+            images_dir = strtrim(images_dir);
         end
         
         data = {};
