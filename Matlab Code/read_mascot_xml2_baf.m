@@ -310,7 +310,7 @@ elseif strcmp(version, '2.4.1')
                 scan = str2num(d{1}(7:end));
             else
                 [~,~,~,d] = regexp(line,'Cmpd_[0-9]+');
-                scan = str2num(d{1}(6:end))
+                scan = str2num(d{1}(6:end));
             end
             out{index}.scan_number = scan;            
             rank = out{index}.pep_rank;
