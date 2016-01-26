@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="347221194" file="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV.prj" location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share" name="CAMV" preferred-package-location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
+  <configuration build-checksum="2630849049" file="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV.prj" location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share" name="CAMV" preferred-package-location="C:\Users\Nader\Dropbox (MIT)\CAMV_Share\CAMV\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
     <param.appname>CAMV</param.appname>
     <param.icon>${PROJECT_ROOT}\CAMV_resources\icon.ico</param.icon>
     <param.icons>

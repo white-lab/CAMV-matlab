@@ -91,13 +91,13 @@ global handle_msconvert;
 
 
     %% Split a full file path into its filename and directory paths
-    function [filename, path] = split_path(full_path)
+    function [fname, path] = split_path(full_path)
         if ~full_path
-            filename = '';
+            fname = '';
             path = '';
         else
-            [path, filename, ext] = fileparts(full_path);
-            filename = [filename, ext];
+            [path, fname, ext] = fileparts(full_path);
+            fname = [fname, ext];
             path = [path '\'];
         end
     end
@@ -202,13 +202,7 @@ global handle_msconvert;
                 return;
             end
             
-            if inputs.spectra
-                set(handle_spectra_accept, 'Value', true);
-                set(handle_spectra_maybe, 'Value', true);
-                set(handle_spectra_reject, 'Value', true);
-            end
-            
-            export;
+            export_default(inputs.spectra);
         end
         
         if inputs.exit
@@ -345,8 +339,8 @@ end
         end
         
         % String these together to find msconvert.exe and images
-        msconvert_full_path = [base_dir, rel_path, '\ProteoWizard\ProteoWizard 3.0.9205\msconvert.exe'];
-        images_dir = [base_dir, rel_path, '\images\'];
+        msconvert_full_path = fullfile(base_dir, rel_path, '\ProteoWizard\ProteoWizard 3.0.9205\msconvert.exe');
+        images_dir = fullfile(base_dir, rel_path, '\images\');
         
         % Otherwise just search that folder for any occurance of files
         % with those names.
@@ -958,7 +952,7 @@ end
             return;
         end
         
-        node.setIcon(im2java(imread([images_dir, 'green.jpg'])));
+        node.setIcon(im2java(imread(fullfile(images_dir, 'green.jpg'))));
         jtree.treeDidChange();
         
         % Add to list to be printed
@@ -1005,7 +999,7 @@ end
             return;
         end
         
-        node.setIcon(im2java(imread([images_dir, 'red.jpg'])));
+        node.setIcon(im2java(imread(fullfile(images_dir, 'red.jpg'))));
         jtree.treeDidChange();
         
         id = regexp(node.getValue, '\.', 'split');
@@ -1051,7 +1045,7 @@ end
             return;
         end
         
-        node.setIcon(im2java(imread([images_dir, 'orange.jpg'])));
+        node.setIcon(im2java(imread(fullfile(images_dir, 'orange.jpg'))));
         jtree.treeDidChange();
         
         % Add to list to be printed
@@ -1129,7 +1123,7 @@ end
                 % Skip '.' and '..'
                 for i = 3:length(dir_contents)
                     if any(strcmp(dir_contents(i).name, fig_names))
-                        delete([dir_path, dir_contents(i).name]);
+                        delete(fullfile(dir_path, dir_contents(i).name));
                     end
                 end
             end
@@ -1143,8 +1137,8 @@ end
                     [data{scan}.protein, ' - ', num2str(data{scan}.scan_number), ' - ', seq] ...
                 );
                 
-                if ~exist([dir_path, fig_name, '.pdf'], 'file')
-                    print_pdf(scan, id, [dir_path, fig_name]);
+                if ~exist(fullfile(dir_path, [fig_name, '.pdf']), 'file')
+                    print_pdf(scan, id, fullfile(dir_path, fig_name));
                 end
             end
         else
@@ -1186,9 +1180,9 @@ end
             'Position', [0, 0, 1, 1] ...
         );
         
-        accept_out = [OUT_path, filename, '\accept'];
-        maybe_out = [OUT_path, filename, '\maybe'];
-        reject_out = [OUT_path, filename, '\reject'];
+        accept_out = fullfile(OUT_path, filename, 'accept');
+        maybe_out = fullfile(OUT_path, filename, 'maybe');
+        reject_out = fullfile(OUT_path, filename, 'reject');
         
         text( ...
             .125, .85, 'Export?', ...
@@ -1308,7 +1302,7 @@ end
             'Units', 'normalized', ...
             'Position', [.8, .05, 0.15, 0.15], ...
             'String', 'Export', ...
-            'Callback', @export ...
+            'Callback', @call_export ...
         );
         
         function enable_accept(~, ~)
@@ -1359,38 +1353,46 @@ end
                 set(handle_reject, 'String', [out_path, out_filename]);
             end
         end
-        function export(~, ~)
-            lists = {accept_list, maybe_list, reject_list};
+        function call_export(~, ~)
             handles = [...
                 [handle_enable_accept, handle_spectra_accept, handle_accept]; ...
                 [handle_enable_maybe, handle_spectra_maybe, handle_maybe]; ...
                 [handle_enable_reject, handle_spectra_reject, handle_reject] ...
             ];
-            labels = {'accept', 'maybe', 'reject'};
-            
+            lists = {accept_list, maybe_list, reject_list};
             for i=1:length(lists)
                 lst = lists{i};
-                lst_type = labels{i};
                 enabled = get(handles(i, 1), 'Value');
                 spectra = get(handles(i, 2), 'Value');
                 path = get(handles(i, 3), 'String');
                 
-                if enabled ~= 1
-                    continue
-                end
-                
-                if isempty(lst)
-                    continue
-                end
-                
-                write_list(lst, path);
-                
-                if spectra
-                    write_spectra(lst, path);
+                if enabled
+                    export(lst, spectra, path);
                 end
             end
-            
             close(fig);
+        end
+    end
+
+    function export_default(spectra)
+        accept_out = fullfile(OUT_path, filename, 'accept');
+        maybe_out = fullfile(OUT_path, filename, 'maybe');
+        reject_out = fullfile(OUT_path, filename, 'reject');
+        
+        export(accept_list, spectra, accept_out);
+        export(maybe_list, spectra, maybe_out);
+        export(reject_list, spectra, reject_out);
+    end
+
+    function export(lst, spectra, path)
+        if isempty(lst)
+            return;
+        end
+
+        write_list(lst, path);
+
+        if spectra
+            write_spectra(lst, path);
         end
     end
 
@@ -1737,12 +1739,12 @@ end
         
         function select_RAW(~, ~)
             [RAW_filename, RAW_path] = uigetfile(['*.raw;*.baf'], 'RAW Files');
-            set(handle_RAW, 'String', [RAW_path, RAW_filename]);
+            set(handle_RAW, 'String', fullfile(RAW_path, RAW_filename));
         end
         
         function select_XML(~, ~)
             [XML_filename, XML_path] = uigetfile([RAW_path, '\*.xml'], 'XML Files');
-            set(handle_XML, 'String', [XML_path, XML_filename]);
+            set(handle_XML, 'String', fullfile(XML_path, XML_filename));
         end
         
         function select_OUT(~, ~)
@@ -1753,7 +1755,7 @@ end
         
         function select_SL(~, ~)
             [SL_filename, SL_path] = uigetfile([RAW_path, '\*.xls;*.xlsx'], 'Excel Files (.xls, .xlsx)');
-            set(handle_SL, 'String', [SL_path, SL_filename]);
+            set(handle_SL, 'String', fullfile(SL_path, SL_filename));
         end
         
         function call_process(~, ~)
@@ -1852,7 +1854,7 @@ end
     end
 
     function run_load_session(LOAD_filename, LOAD_path)
-        if exist([LOAD_path, '\', LOAD_filename], 'file')
+        if exist(fullfile(LOAD_path, LOAD_filename), 'file')
             print_now('Loading...');
             set(handle_file,'Enable', 'off');
             set(handle_file_continue,'Enable', 'off');
@@ -2579,17 +2581,17 @@ end
             end
         end
         
-        temp_path = [OUT_path, filename];
+        temp_path = fullfile(OUT_path, filename);
         if exist(temp_path, 'dir') == 0
             mkdir(temp_path);
         end
         print_now(['Reading File: ', filename]);
         
         try
-            [mods, it_mods, data] = read_mascot_xml2_baf([XML_path,XML_filename]);
+            [mods, it_mods, data] = read_mascot_xml2_baf(fullfile(XML_path, XML_filename));
         catch err
             print_now('');
-            msgbox(['Improperly Formatted XML File:\n', err.identifier, XML_path, XML_filename],'Warning');
+            msgbox(['Improperly Formatted XML File:\n', err.identifier, fullfile(XML_path, XML_filename)],'Warning');
             return;
         end
         
@@ -2783,9 +2785,9 @@ end
         % Get scan data from RAW file
         scans_used = [];
         if ~isempty(SL_filename)
-            if exist([SL_path, '\', SL_filename], 'file')
+            if exist(fullfile(SL_path, SL_filename), 'file')
                 % Read only fron scan input list
-                temp = unique(xlsread([SL_path,SL_filename]));
+                temp = unique(xlsread(fullfile(SL_path, SL_filename)));
                 
                 total_found = 0;
                 for i = 1:length(temp)
@@ -2833,7 +2835,13 @@ end
         fwrite(fid,scans);
         fclose(fid);
         
-        [a,b] = systemsafe(msconvert_full_path, [RAW_path,RAW_filename], '-o', RAW_path, '--outfile', filename, '--mzXML', '-c', 'config.txt');
+        [a,b] = systemsafe( ...
+            msconvert_full_path, ...
+            fullfile(RAW_path, RAW_filename), ...
+            '-o', RAW_path, ...
+            '--outfile', filename, ...
+            '--mzXML', '-c', 'config.txt' ...
+        );
         % for some reason, .baf file generates a .mzXML file named after
         % the immediate subfolder, not the raw file.
         
@@ -2844,16 +2852,22 @@ end
         end
         tic
         
-        [a,b] = systemsafe(msconvert_full_path, [RAW_path,RAW_filename], '-o', RAW_path, '--outfile', filename, '--text', '-c', 'config.txt');
+        [a,b] = systemsafe( ...
+            msconvert_full_path, ...
+            fullfile(RAW_path, RAW_filename), ...
+            '-o', RAW_path, ...
+            '--outfile', filename, ...
+            '--text', '-c', 'config.txt' ...
+        );
         
         if a > 0
             warndlg(b,'msConvert Error');
         end
         
         
-        isolationMz = msconverttxtread([RAW_path, filename,'.txt']);
+        isolationMz = msconverttxtread(fullfile(RAW_path, [filename, '.txt']));
         toc
-        mzXML_out = mzxmlread2([RAW_path, filename,'.mzXML']);
+        mzXML_out = mzxmlread2(fullfile(RAW_path, [filename, '.mzXML']));
         
         delete('config.txt');
         %delete([RAW_path, filename,'.txt'])
@@ -2962,13 +2976,19 @@ end
             fclose(fid);
             
             
-            [a,b] = systemsafe(msconvert_full_path, [RAW_path,RAW_filename] , '-o', RAW_path, '--outfile', filename, '--mzXML', '-c', 'config.txt');
+            [a,b] = systemsafe( ...
+                msconvert_full_path, ...
+                fullfile(RAW_path, RAW_filename), ...
+                '-o', RAW_path, ...
+                '--outfile', filename, ...
+                '--mzXML', '-c', 'config.txt' ...
+            );
             
             if a > 0
                 warndlg(b,'msConvert Error');
             end
             
-            mzXML_out = mzxmlread2([RAW_path, filename,'.mzXML']);
+            mzXML_out = mzxmlread2(fullfile(RAW_path, [filename, '.mzXML']));
             %             systemsafe('ProteoWizard\"ProteoWizard 3.0.4323"\msconvert input\', filename, '.raw', -o', 'input\', '--mzXML', '-c', 'config.txt');
             %             mzXML_out = mzxmlread2(['input\', filename,'.mzXML']);
             delete('config.txt');
@@ -3116,13 +3136,19 @@ end
         fwrite(fid,scans);
         fclose(fid);
         
-        [a,b] = systemsafe(msconvert_full_path, [RAW_path,RAW_filename], '-o', RAW_path, '--outfile', filename, '--mzXML', '-c', 'config.txt');
+        [a,b] = systemsafe( ...
+            msconvert_full_path, ...
+            fullfile(RAW_path, RAW_filename), ...
+            '-o', RAW_path, ...
+            '--outfile', filename, ...
+            '--mzXML', '-c', 'config.txt' ...
+        );
         
         if a > 0
             warndlg(b,'msConvert Error');
         end
         
-        mzXML_out = mzxmlread2([RAW_path, filename,'.mzXML']); %&&&
+        mzXML_out = mzxmlread2(fullfile(RAW_path, [filename, '.mzXML'])); %&&&
         %         systemsafe(['ProteoWizard\"ProteoWizard 3.0.4323"\msconvert input\', filename, '.raw -o input\ --mzXML -c config.txt']);
         %         mzXML_out = mzxmlread2(['input\', filename,'.mzXML']);
         delete('config.txt');
@@ -3377,7 +3403,7 @@ end
             print_code_now('');
             
             for j = 1:length(data{scan}.fragments)
-                node.add(uitreenode('v0', [num2str(scan),'.',num2str(j)], data{scan}.fragments{j}.seq,  [images_dir, 'gray.jpg'], true));
+                node.add(uitreenode('v0', [num2str(scan),'.',num2str(j)], data{scan}.fragments{j}.seq,  fullfile(images_dir, 'gray.jpg'), true));
             end
         end
     end
@@ -3398,13 +3424,13 @@ end
         for i = 1:length(data)
             if i == 1
                 % First scan
-                prot = uitreenode('v0', 'protein', data{i}.protein, [images_dir, 'white.jpg'], false);
+                prot = uitreenode('v0', 'protein', data{i}.protein, fullfile(images_dir, 'white.jpg'), false);
                 prev_prot = data{i}.protein;
                 num_prot = num_prot + 1;
             elseif ~strcmp(data{i}.protein,prev_prot)
                 root.add(prot);
                 % First scan of new protein
-                prot = uitreenode('v0', 'protein', data{i}.protein, [images_dir, 'white.jpg'], false);
+                prot = uitreenode('v0', 'protein', data{i}.protein, fullfile(images_dir, 'white.jpg'), false);
                 prev_prot = data{i}.protein;
                 num_prot = num_prot + 1;
             end
@@ -3424,24 +3450,24 @@ end
             end
             
             
-            temp = uitreenode('v0', num2str(i), name, [images_dir, 'white.jpg'], false);
+            temp = uitreenode('v0', num2str(i), name, fullfile(images_dir, 'white.jpg'), false);
             temp.UserData = data{i}.scan_number;
             if ~isfield(data{i},'code')
                 for j = 1:length(data{i}.fragments)
                     seq = data{i}.fragments{j}.seq;
                     switch data{i}.fragments{j}.status
                         case 0
-                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq,  [images_dir, 'gray.jpg'], true));
+                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq, fullfile(images_dir, 'gray.jpg'), true));
                         case 1
-                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq,  [images_dir, 'green.jpg'], true));
+                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq, fullfile(images_dir, 'green.jpg'), true));
                             accept_list{end+1}.scan = num2str(i);
                             accept_list{end}.choice = num2str(j);
                         case 2
-                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq,  [images_dir, 'orange.jpg'], true));
+                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq, fullfile(images_dir, 'orange.jpg'), true));
                             maybe_list{end+1}.scan = num2str(i);
                             maybe_list{end}.choice = num2str(j);
                         case 3
-                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq,  [images_dir, 'red.jpg'], true));
+                            temp.add(uitreenode('v0', [num2str(i),'.',num2str(j)], seq, fullfile(images_dir, 'red.jpg'), true));
                             reject_list{end+1}.scan = num2str(i);
                             reject_list{end}.choice = num2str(j);
                     end
@@ -4124,7 +4150,7 @@ end
         filename_temp = regexprep(filename_temp,'?','');
         filename_temp = regexprep(filename_temp,'*','');
         
-        print(fig, '-dpdf', '-r900', [dir_temp, '\', filename_temp, ext_temp]);
+        print(fig, '-dpdf', '-r900', fullfile(dir_temp, [filename_temp, ext_temp]));
         
         close(fig);
     end
