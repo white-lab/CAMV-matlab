@@ -146,16 +146,30 @@ global handle_msconvert;
             if isempty(inputs.raw_path)
                 msgbox('No raw path specified.', 'Warning');
                 success = false;
-                return;
             end
             if isempty(inputs.xml_path)
                 msgbox('No xml path specified.', 'Warning');
                 success = false;
-                return;
             end
             if isempty(inputs.out_path)
                 msgbox('No output path specified.', 'Warning');
                 success = false;
+            end
+            
+            if ~exist(inputs.raw_path, 'file')
+                msgbox('RAW input file not found.', 'Warning');
+                success = false;
+            end
+            if ~exist(inputs.xml_path, 'file')
+                msgbox('XML input file not found.', 'Warning');
+                success = false;
+            end
+            if ~isempty(inputs.sl_path) && ~exist(inputs.sl_path, 'file')
+                msgbox('Scan List input file not found.', 'Warning');
+                success = false;
+            end
+            
+            if ~success
                 return;
             end
             
@@ -345,11 +359,11 @@ end
         % Otherwise just search that folder for any occurance of files
         % with those names.
         if ~exist(msconvert_full_path, 'file')
-            [~, msconvert_full_path] = docs(['dir /s/b ', base_dir, '\*msconvert.exe']);
+            [~, msconvert_full_path] = systemsafe('dir', '/s/b', [base_dir, '\*msconvert.exe']);
         end
 
         if ~exist(images_dir, 'dir')
-            [~, images_dir] = docs(['dir /s/b ', base_dir, '\*images']);
+            [~, images_dir] = systemsafe('dir', '/s/b', [base_dir, '\*images']);
             images_dir = [images_dir, '\'];
         end
         
@@ -1793,7 +1807,7 @@ end
             validate_spectra();
         catch err
             print_code_now(['Error validating spectra: ', err.identifier, '. Please reset.'])
-            set(handle_reset,'Enable', 'on');
+            set(handle_reset, 'Enable', 'on');
         end
         if ~isempty(data)
             [mtree,jtree] = build_tree(filename, data);
@@ -2810,7 +2824,7 @@ end
                     end
                 end
             else
-                print_now('No Scan List File Found');
+                msgbox('No Scan List File Found', 'Warning');
             end
         end
         
