@@ -1582,7 +1582,6 @@ end
 
             if ~isemtpy(data)
                 print_now(['Saving...', filename]);
-                %                     save([path, filename,'.mat'],'data', 'iTRAQType', 'iTRAQ_masses','SILAC','SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window');
                 save( ...
                     [SAVE_path, SAVE_filename], ...
                     'data', 'iTRAQType', 'iTRAQ_masses', 'SILAC', 'SILAC_R6', 'SILAC_R10', 'SILAC_K6', 'SILAC_K8', ...
@@ -1648,9 +1647,6 @@ end
                         'cont_thresh', 'cont_window', 'HCD_tol', 'CID_tol', 'OUT_path', ...
                         '-v7' ...
                     );
-                    
-                    %                         save([path, filename,'.mat'],'data', 'iTRAQType', 'iTRAQ_masses','SILAC','SILAC_R6','SILAC_R10','SILAC_K6','SILAC_K8','cont_thresh','cont_window');
-                    
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     
                     print_now('');
@@ -2632,15 +2628,19 @@ end
                 if strcmp(mods{i},'iTRAQ8plex (K)') || strcmp(mods{i},'iTRAQ8plex (N-term)')
                     iTRAQType = {'Fixed', 8};
                     iTRAQ_masses = iTRAQ_8_plex_masses;
+                    iTRAQ_labels = iTRAQ_8_plex_labels;
                 elseif strcmp(mods{i},'iTRAQ4plex (K)') || strcmp(mods{i},'iTRAQ4plex (N-term)')
                     iTRAQType = {'Fixed', 4};
                     iTRAQ_masses = iTRAQ_4_plex_masses;
+                    iTRAQ_labels = iTRAQ_4_plex_labels;
                 elseif strcmp(mods{i},'TMT10plex (K)') || strcmp(mods{i},'TMT10plex (N-term)')
-                    iTRAQType = {'Fixed',10};
+                    iTRAQType = {'Fixed', 10};
                     iTRAQ_masses = TMT_10_plex_masses;
+                    iTRAQ_labels = TMT_10_plex_labels;
                 elseif strcmp(mods{i},'TMT6plex (K)') || strcmp(mods{i},'TMT6plex (N-term)')
-                    iTRAQType = {'Fixed',6};
+                    iTRAQType = {'Fixed', 6};
                     iTRAQ_masses = TMT_6_plex_masses;
+                    iTRAQ_labels = TMT_6_plex_labels;
                 end
             end
         end
@@ -2667,12 +2667,12 @@ end
                 iTRAQ_masses = iTRAQ_4_plex_masses;
                 iTRAQ_labels = iTRAQ_4_plex_labels;
             elseif strcmp(it_mods{i},'TMT10plex (K)') || strcmp(it_mods{i},'TMT10plex (N-term)')
-                iTRAQType = {'Fixed',10};
+                iTRAQType = {'Variable', 10};
                 iTRAQ_masses = TMT_10_plex_masses;
                 iTRAQ_labels = TMT_10_plex_labels;
                 
             elseif strcmp(it_mods{i},'TMT6plex (K)') || strcmp(it_mods{i},'TMT6plex (N-term)')
-                iTRAQType = {'Fixed',6};
+                iTRAQType = {'Variable', 6};
                 iTRAQ_masses = TMT_6_plex_masses;
                 iTRAQ_labels = TMT_6_plex_labels;
                 
