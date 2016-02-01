@@ -1166,7 +1166,14 @@ end
     %%% Write a list of peptides and their associated iTRAQ data for a
     %%% given peptide list.
     function write_list(lst, path)
+        [out_dir, ~, ~] = fileparts(path);
+        
+        if exist(out_dir, 'dir') == 0
+            mkdir(out_dir);
+        end
+        
         out_path = [path, '.xls'];
+        
         if ~isempty(lst)
             if ~strcmp(iTRAQType{1},'None')
                 iTRAQ_to_Excel(lst, out_path);
@@ -1823,19 +1830,23 @@ end
         end
     end
         
-    function labels = detect_labels_from_masses(masses)
-        switch length(masses)
+    function [labels, masses] = detect_from_itype(itype)
+        switch itype{2}
             case 4
                 labels = iTRAQ_4_plex_labels;
+                masses = iTRAQ_4_plex_masses;
             case 6
                 labels = TMT_6_plex_labels;
+                masses = TMT_6_plex_masses;
             case 8
                 labels = iTRAQ_8_plex_labels;
+                masses = iTRAQ_8_plex_masses;
             case 10
                 labels = TMT_10_plex_labels;
+                masses = TMT_10_plex_masses;
             otherwise
-                warning('Unknown label, defaulting to iTRAQ 4-plex');
-                labels = iTRAQ_4_plex_labels;
+                labels = [];
+                masses = [];
         end
     end
 
@@ -1869,17 +1880,17 @@ end
     function run_load_session(LOAD_filename, LOAD_path)
         if exist(fullfile(LOAD_path, LOAD_filename), 'file')
             print_now('Loading...');
-            set(handle_file,'Enable', 'off');
-            set(handle_file_continue,'Enable', 'off');
+            set(handle_file, 'Enable', 'off');
+            set(handle_file_continue, 'Enable', 'off');
             
-            filename = regexprep(LOAD_filename,'.mat','');
+            filename = regexprep(LOAD_filename, '.mat', '');
             
-            temp = load([LOAD_path, LOAD_filename]);
+            temp = load(fullfile(LOAD_path, LOAD_filename));
             data = temp.data;
             iTRAQType = temp.iTRAQType;
-            iTRAQ_masses = temp.iTRAQ_masses;
+            % iTRAQ_masses = temp.iTRAQ_masses;
             % Don't save iTRAQ_labels, for backwards compatibility
-            iTRAQ_labels = detect_labels_from_masses(iTRAQ_masses);
+            [iTRAQ_labels, iTRAQ_masses] = detect_from_itype(iTRAQType);
             SILAC = temp.SILAC;
             SILAC_R6 = temp.SILAC_R6;
             SILAC_R10 = temp.SILAC_R10;
