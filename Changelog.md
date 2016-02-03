@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.1 (2016-01-**)
+## 1.1 (2016-02-03)
 
 Features
 
@@ -16,6 +16,7 @@ Bugfixes:
   - Fixed the list of iTRAQ masses used for iTRAQ 4-plex.
   - Fixed MATLAB errors when moving spectra between accept / maybe / reject lists.
   - Removed trailing tabs from exported Excel files.
+  - Fixed TMT 6-plex export to only output 6 channels (Was previously all 10-plex channels)
 
 ## 1.0 (2015-11-07)
 
