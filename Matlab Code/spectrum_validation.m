@@ -2498,11 +2498,11 @@ end
         
         [r,~] = size(data{scan}.fragments{id}.validated);
         curr_name = get(a,'String');
-        curr_name = curr_name(2:end); % Remove initial space inserted for cosmetic display
+        curr_name = strtrim(curr_name); % Remove initial space inserted for cosmetic display
         curr_pos = get(a,'Position');
         curr_ion = 0;
         for i = 1:r
-            if strcmp(curr_name,data{scan}.fragments{id}.validated(i,2)) && curr_pos(1) == data{scan}.fragments{id}.validated{i,1}
+            if strcmp(curr_name, data{scan}.fragments{id}.validated(i, 2)) && curr_pos(1) == data{scan}.fragments{id}.validated{i,1}
                 curr_ion = i;
             elseif strcmp(curr_name,data{scan}.fragments{id}.validated(i,2))
                 1;
