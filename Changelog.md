@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.1.1 (2016-04-11)
+
+Bugfixes:
+
+  - Fixed bug in renaming peaks.
+
 ## 1.1 (2016-02-03)
 
 Features
