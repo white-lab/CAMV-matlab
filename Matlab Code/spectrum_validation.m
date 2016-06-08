@@ -2119,21 +2119,25 @@ end
                         node = get(node, 'NextNode');
                     end
                 end
-                mtree.setSelectedNode(node);
-                prev_node = '';
-                close(h2);
-                
-                % Move focus in tree to newly selected scan number
-                jtree.grabFocus;
-                tree_row = mtree.Tree.getSelectionRows();
-                %pause(0.1);
-                mtree.Tree.scrollRowToVisible(tree_row);
-                mtree.expand(node);
-                %                 mtree.collapse(node);
-                mtree.FigureComponent.getHorizontalScrollBar.setValue(0);
-                
-                % Redraw new scan information
-                mousePressedCallback();
+                if ~found
+                    msgbox('No Matching Scans', 'Warning');
+                else
+                    mtree.setSelectedNode(node);
+                    prev_node = '';
+                    close(h2);
+
+                    % Move focus in tree to newly selected scan number
+                    jtree.grabFocus;
+                    tree_row = mtree.Tree.getSelectionRows();
+                    %pause(0.1);
+                    mtree.Tree.scrollRowToVisible(tree_row);
+                    mtree.expand(node);
+                    %                 mtree.collapse(node);
+                    mtree.FigureComponent.getHorizontalScrollBar.setValue(0);
+
+                    % Redraw new scan information
+                    mousePressedCallback();
+                end
                 
             end
             
