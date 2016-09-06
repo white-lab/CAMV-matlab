@@ -193,11 +193,19 @@ elseif strcmp(version, '2.4.1')
     %%
     query_used = [];
     scan_used = [];
+    spectrum_id_mapping = [];
     index = 1;
-    while ~feof(fid) && ~strcmp(line, '</hits>')
+    use_mapping = 0;
+    hits_section = 0;
+    
+    while ~feof(fid) && ~(~use_mapping && strcmp(line, '</hits>'))
         line = fgetl(fid);
         
-        if strcmp(line, '<fixed_mods>')
+        if strcmp(line, '<hits>')
+            hits_section = 1;
+        elseif strcmp(line, '</hits>')
+            hits_section = 0;
+        elseif strcmp(line, '<fixed_mods>')
             % Collect list of fixed modifications used in search
             while ~strcmp(line, '</fixed_mods>')
                 if ~isempty(strfind(line, '<name>'))
@@ -224,7 +232,7 @@ elseif strcmp(version, '2.4.1')
             line = regexprep(line,'<prot_desc>','');
             line = regexprep(line,'</prot_desc>','');
             protein = regexprep(line,' OS=.+','');
-        elseif ~isempty(strfind(line,'<peptide query='))
+        elseif ~isempty(strfind(line,'<peptide query=')) && hits_section
             %             line = regexprep(line,'<peptide query="','');
             out{index}.gi = gi;
             out{index}.protein = protein;
@@ -242,22 +250,22 @@ elseif strcmp(version, '2.4.1')
             % Some runs missing scores -> default to 0
             out{index}.pep_score = 0;
             
-        elseif ~isempty(strfind(line,'<pep_exp_mz>'))
+        elseif ~isempty(strfind(line,'<pep_exp_mz>')) && hits_section
             line = regexprep(line,'<pep_exp_mz>','');
             out{index}.pep_exp_mz = str2num(regexprep(line,'</pep_exp_mz>',''));
-        elseif ~isempty(strfind(line,'<pep_exp_z>'))
+        elseif ~isempty(strfind(line,'<pep_exp_z>')) && hits_section
             line = regexprep(line,'<pep_exp_z>','');
             out{index}.pep_exp_z = str2num(regexprep(line,'</pep_exp_z>',''));
-        elseif ~isempty(strfind(line,'<pep_score>'))
+        elseif ~isempty(strfind(line,'<pep_score>')) && hits_section
             line = regexprep(line,'<pep_score>','');
             out{index}.pep_score = str2num(regexprep(line,'</pep_score>',''));
             %         elseif ~isempty(strfind(line,'<pep_rank>'))
             %             line = regexprep(line,'<pep_rank>','');
             %             out{index}.pep_rank = str2num(regexprep(line,'</pep_rank>',''));
-        elseif ~isempty(strfind(line,'<pep_seq>'))
+        elseif ~isempty(strfind(line,'<pep_seq>')) && hits_section
             line = regexprep(line,'<pep_seq>','');
             out{index}.pep_seq = regexprep(line,'</pep_seq>','');
-        elseif ~isempty(strfind(line,'<pep_var_mod>'))
+        elseif ~isempty(strfind(line,'<pep_var_mod>')) && hits_section
             line = regexprep(line,'<pep_var_mod>','');
             line = regexprep(line,'<pep_var_mod />','');
             line = regexprep(line,'</pep_var_mod>','');
@@ -315,9 +323,24 @@ elseif strcmp(version, '2.4.1')
                 else
                     [~,~,~,d] = regexp(line,'SpectrumID: &quot;[0-9]+&quot;');
                     scan = str2num(d{1}(19:end-6));
+                    use_mapping = 1;
                 end
             end
-            out{index}.scan_number = scan;            
+        elseif ~isempty(strfind(line,'StringTitle'))
+            % to support ProteomeDiscover 2.1
+            [~,~,~,d] = regexp(line,'SpectrumID: &quot;[0-9]+&quot;');
+            spectrum_id = str2num(d{1}(19:end-6));
+        elseif ~isempty(strfind(line, '<SCANS>'))
+            % to support ProteomeDiscover 2.1
+            [~,~,~,d] = regexp(line, '[0-9]+');
+            
+            real_scan = str2num(d{1});
+            spectrum_id_mapping = [spectrum_id_mapping; spectrum_id, real_scan];
+            
+            spectrum_id = NaN;
+            real_scan = NaN;
+        elseif ~isempty(strfind(line, '</peptide>'))
+            out{index}.scan_number = scan;
             rank = out{index}.pep_rank;
             
             % Searches if scan was previously seen.  If so, searches if
@@ -342,6 +365,18 @@ elseif strcmp(version, '2.4.1')
         end
     end
     
+    % Fix scan IDs if using Spectrum IDs
+    indices = [];
+    for i=1:length(spectrum_id_mapping)
+        for j=1:length(out)
+            if out{j}.scan_number == spectrum_id_mapping(i, 1)
+                indices = [indices; j, spectrum_id_mapping(i, 2)];
+            end
+        end
+    end
+    for i=1:length(indices)
+        out{indices(i, 1)}.scan_number = indices(i, 2);
+    end
 elseif strcmp(version, '2.3.02')
     %%
     while ~feof(fid) && ~strcmp(line, '</hits>')
