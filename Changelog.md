@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.3 (2016-09-05)
+
+Bugfixes:
+
+  - Fixed bug in alternate <pep_scan_title> format in MASCOT XML file.
+
 ## 1.2 (2016-04-11)
 
 Bugfixes:
